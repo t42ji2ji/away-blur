@@ -145,6 +145,11 @@ over a busy background. While it is drifting the display link drops to about
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --cat ~/Desktop/cats.png
 ```
 
+Eyes and mouth are separate grids, because that is how a kaomoji is built —
+(･ω･) is two eyes and an ω — and because it makes blinking free: swap the eyes
+for the closed pair, keep the mouth. The cat blinks for an eighth of a second
+every few seconds, never on a metronome.
+
 Eyes stay narrow and a blank row separates them from the mouth. Widen them and
 the eyes and the ω run together into one zigzag across the whole face.
 

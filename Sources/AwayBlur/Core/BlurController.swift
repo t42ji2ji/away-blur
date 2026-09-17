@@ -31,6 +31,9 @@ final class BlurController {
     private var permission = (checked: CFTimeInterval(0), granted: false)
     private let camera = FaceCheck()
     private var stamp: MTLTexture?
+    private var blinkStamp: MTLTexture?
+    private var blinkAgainAt: CFTimeInterval = 0
+    private var blinkingUntil: CFTimeInterval = 0
     private(set) var lastFaceSeen: CFTimeInterval = 0
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
@@ -227,7 +230,10 @@ final class BlurController {
         }
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
-        stamp = renderer.makeStamp(face: chosenFace())
+        let face = chosenFace()
+        stamp = renderer.makeStamp(face: face)
+        blinkStamp = renderer.makeStamp(face: face, blinking: true)
+        blinkAgainAt = 0
         progress = 0
         // Held, not rising: the ramp only starts once the sharp copy is up.
         phase = .held
@@ -282,7 +288,7 @@ final class BlurController {
         // up and down does not need every frame the display can give.
         if phase == .held {
             if preferences.showsCat {
-                link?.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 20, preferred: 15)
+                link?.preferredFrameRateRange = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
             } else {
                 stopLink()
             }
@@ -299,16 +305,26 @@ final class BlurController {
 
     /// Whole pixels per cell, whole pixels of travel, centred. Fractions of a
     /// pixel anywhere here and the art goes soft.
+    /// Cats blink often and briefly, and not on a metronome.
+    private func updateBlink() {
+        let now = CACurrentMediaTime()
+        guard now >= blinkAgainAt else { return }
+        blinkingUntil = now + 0.13
+        blinkAgainAt = now + Double.random(in: 2.4...6.5)
+    }
+
     private func placement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
         guard preferences.showsCat, let stamp else { return nil }
+        let shut = CACurrentMediaTime() < blinkingUntil
+        let texture = (shut ? blinkStamp : stamp) ?? stamp
         let size = overlay.layer.drawableSize
         let columns = Double(stamp.width), rows = Double(stamp.height)
         let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
         let span = CGSize(width: columns * cell, height: rows * cell)
-        let float = (sin(CACurrentMediaTime() * 2 * .pi / 4.5) * cell * 1.5).rounded()
+        let float = (sin(CACurrentMediaTime() * 2 * .pi / 2.6) * cell * 1.5).rounded()
         let eased = min(max((progress - 0.3) / 0.5, 0), 1)
         return BlurRenderer.Stamp(
-            texture: stamp,
+            texture: texture,
             origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
                             y: ((size.height - span.height) / 2 + float).rounded()),
             cell: cell,
@@ -320,6 +336,7 @@ final class BlurController {
         let settings = preferences.current
         let shown = pinned ?? progress
         let look = FrameLook(settings: settings, progress: shown)
+        if preferences.showsCat { updateBlink() }
         for overlay in overlays {
             guard let picture = overlay.picture else { continue }
             var arrived: (@Sendable () -> Void)?
@@ -350,6 +367,7 @@ final class BlurController {
         overlays.forEach { $0.close() }
         overlays.removeAll()
         stamp = nil
+        blinkStamp = nil
         phase = .hidden
         progress = 0
         // A preview never outlives its own overlay. Anything that takes the
