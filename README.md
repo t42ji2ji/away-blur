@@ -31,6 +31,19 @@ free to change per frame, which is the point: the ramp from sharp to frosted is 
 real defocus, not a cross-fade between a sharp copy and a blurred one. Cross-fades
 show both images at once and read as ghosting, especially on text.
 
+The averaging happens on the values the screen shows, not on light: the texture
+is `bgra8Unorm`, not `bgra8Unorm_srgb`. With the sRGB format the sampler hands
+the shader linear light, and a white pixel averaged with a black one comes back
+at half the light — which still reads as bright. Everything bright then swells
+into the dark around it as the radius grows, by 15 or 20px at radius 20, and on
+a dark screen with a bright panel in one corner the whole picture looks like it
+is sliding that way. It is what a real lens does and it is wrong here.
+
+That also makes measurement subtle: an edge's midpoint only survives a blur in
+the space the averaging happened in, so `--edges` converts to linear before it
+looks. Measuring the sRGB bytes tilts every edge towards its darker side and
+reports drift that is not there.
+
 The mip chain is the hardware one, not `MPSImageGaussianPyramid`. The Gaussian
 pyramid is the nicer filter, but its levels sit half a texel off what a mipmap
 sampler expects, so the whole picture slides towards the bottom right by about
@@ -61,10 +74,14 @@ Scripts/blurctl on         # put the blur up, to look at it
 Scripts/blurctl off
 tail -f ~/Library/Logs/AwayBlur.log
 
-# Renders a soft blob at a range of radii and reports where its centre of mass
-# ended up. A blur must not move the picture. Anything above a tenth of a pixel
-# below radius 128 is a bug.
+# A blur must not move the picture. --edges renders a corner block and reports
+# where its two straight edges ended up; --measure does the same with a soft
+# blob and its centre of mass. Anything above a tenth of a pixel below radius
+# 128 is a bug. --shot puts the real screen through the pipeline and writes the
+# frames out, for when the numbers and the eyes disagree.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --edges
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --measure
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --shot ~/Desktop
 ```
 
 The build is signed with a self-signed `Away Blur Dev` identity from the login

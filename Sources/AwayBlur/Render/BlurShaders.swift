@@ -70,9 +70,9 @@ enum BlurShaders {
             colour = mix(colour, average, wash);
         }
 
-        // Sinking towards black, steeply, so the picture recedes instead of
-        // turning grey.
-        colour *= pow(1.0 - dim, 2.1);
+        // Sinking towards black. The values here are what the screen shows,
+        // not light, so the fall does not need a curve on top.
+        colour *= 1.0 - dim;
 
         // Grain, so a wide dark gradient does not band on an 8-bit panel.
         if (grain > 0.0005) {

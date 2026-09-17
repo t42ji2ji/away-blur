@@ -1,5 +1,16 @@
 import AppKit
 
+if let index = CommandLine.arguments.firstIndex(of: "--shot") {
+    let path = CommandLine.arguments.count > index + 1 ? CommandLine.arguments[index + 1] : "."
+    Diagnostics.shoot(into: URL(fileURLWithPath: path, isDirectory: true))
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--edges") {
+    Diagnostics.measureEdges()
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--measure") {
     Diagnostics.measureDrift()
     exit(0)

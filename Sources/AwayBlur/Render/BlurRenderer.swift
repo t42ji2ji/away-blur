@@ -9,6 +9,16 @@ final class BlurRenderer {
 
     static let colourSpace = CGColorSpace.displayP3
 
+    /// Deliberately not an `_srgb` format. With one, the sampler hands the
+    /// shader linear light and the averaging happens there, which is what a
+    /// real lens does: a white pixel averaged with a black one comes back at
+    /// half the light, and half the light still reads as bright. Anything
+    /// bright then swells into the dark around it as the radius grows, and on
+    /// a dark screen with a bright panel in one corner the whole picture looks
+    /// like it is sliding that way. Averaging the stored values instead keeps
+    /// every edge where it is.
+    static let pixelFormat: MTLPixelFormat = .bgra8Unorm
+
     let device: MTLDevice
     private let queue: MTLCommandQueue
     private let pipeline: MTLRenderPipelineState
@@ -40,7 +50,7 @@ final class BlurRenderer {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = library.makeFunction(name: "fullScreenVertex")
         descriptor.fragmentFunction = library.makeFunction(name: "blurFragment")
-        descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm_srgb
+        descriptor.colorAttachments[0].pixelFormat = BlurRenderer.pixelFormat
         guard let pipeline = try? device.makeRenderPipelineState(descriptor: descriptor) else { return nil }
         self.device = device
         self.queue = queue
@@ -51,7 +61,7 @@ final class BlurRenderer {
     func makeLayer(scale: CGFloat) -> CAMetalLayer {
         let layer = CAMetalLayer()
         layer.device = device
-        layer.pixelFormat = .bgra8Unorm_srgb
+        layer.pixelFormat = BlurRenderer.pixelFormat
         layer.framebufferOnly = true
         layer.isOpaque = false
         layer.contentsScale = scale
@@ -85,7 +95,7 @@ final class BlurRenderer {
         let height = BlurRenderer.aligned(image.height)
 
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm_srgb, width: width, height: height, mipmapped: true)
+            pixelFormat: BlurRenderer.pixelFormat, width: width, height: height, mipmapped: true)
         descriptor.usage = [.shaderRead, .shaderWrite, .renderTarget]
         descriptor.storageMode = .private
         guard let texture = device.makeTexture(descriptor: descriptor) else { return nil }
