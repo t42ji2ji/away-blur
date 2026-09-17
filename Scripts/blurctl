@@ -2,6 +2,7 @@
 # Drives a running Away Blur from the shell, for tuning.
 case "$1" in
     on|off|toggle|sharp) open "awayblur://preview/$1" ;;
+    now)                  open "awayblur://blur/now" ;;
     settings)      open "awayblur://settings/show" ;;
-    *) echo "usage: blurctl on|off|toggle|sharp|settings" ; exit 1 ;;
+    *) echo "usage: blurctl now|on|off|toggle|sharp|settings" ; exit 1 ;;
 esac

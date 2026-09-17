@@ -37,6 +37,8 @@ final class BlurController {
     /// Long enough to take your hand off the keyboard after asking for a
     /// preview, before the same keyboard is what takes it away again.
     private static let previewGrace: CFTimeInterval = 1.5
+    /// Longer than a preview's: whoever asked for this may be getting up.
+    private static let blurNowGrace: CFTimeInterval = 4
 
     /// True while the settings panel is up. That is the one case where the
     /// blur may ignore the keyboard: you are dragging sliders, the panel
@@ -49,6 +51,7 @@ final class BlurController {
         didSet {
             guard isPreviewing != oldValue else { return }
             previewStarted = isPreviewing ? CACurrentMediaTime() : 0
+            if !isPreviewing { grace = BlurController.previewGrace }
             decide()
         }
     }
@@ -60,8 +63,20 @@ final class BlurController {
         didSet { if isShowing { drawFrame() } }
     }
 
+    private var grace: CFTimeInterval = BlurController.previewGrace
+
     private var withinPreviewGrace: Bool {
-        CACurrentMediaTime() - previewStarted <= BlurController.previewGrace
+        CACurrentMediaTime() - previewStarted <= grace
+    }
+
+    /// Takes the screen now, without waiting out the idle clock. It behaves
+    /// like the real thing from there: a hand on the keyboard takes it back.
+    func blurNow() {
+        guard hasPermission else { return }
+        if isShowing, !isPreviewing { return }
+        grace = BlurController.blurNowGrace
+        pinned = nil
+        isPreviewing = true
     }
 
     /// Takes the screen back, whatever put it away.

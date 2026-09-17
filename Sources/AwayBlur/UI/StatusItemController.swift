@@ -36,6 +36,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
+        let now = NSMenuItem(title: "Blur now", action: #selector(blurNow), keyEquivalent: "b")
+        now.keyEquivalentModifierMask = [.control, .option, .command]
+        now.target = self
+        menu.addItem(now)
+        menu.addItem(.separator())
+
         if controller.isShowing {
             let clear = NSMenuItem(title: "Clear the screen now", action: #selector(clearNow), keyEquivalent: "")
             clear.target = self
@@ -118,6 +124,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func openSettings() {
         settings.show()
+    }
+
+    @objc private func blurNow() {
+        controller.blurNow()
     }
 
     @objc private func clearNow() {

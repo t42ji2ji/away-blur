@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: BlurController!
     private var statusItem: StatusItemController!
     private var settings: SettingsPanel!
+    private var hotkey: Hotkey?
 
     nonisolated override init() { super.init() }
 
@@ -16,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings = SettingsPanel(preferences: preferences, controller: controller)
         statusItem = StatusItemController(preferences: preferences, controller: controller, settings: settings)
         controller.isTuning = { [weak settings] in settings?.isVisible ?? false }
+        hotkey = Hotkey { [weak self] in self?.controller.blurNow() }
+        if hotkey == nil { FileLog.write("could not register \(Hotkey.title)") }
 
         FileLog.write("launched, screen recording granted: \(ScreenSnapshot.hasPermission())")
         askForPermissionIfNeeded()
@@ -28,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls where url.scheme == "awayblur" {
             let action = url.lastPathComponent
             switch (url.host, action) {
+            case ("blur", _): controller.blurNow()
             case ("preview", "sharp"):
                 controller.pinned = 0
                 controller.isPreviewing = true

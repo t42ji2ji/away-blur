@@ -119,6 +119,15 @@ Screen Recording has to be granted in System Settings → Privacy & Security →
 Screen & System Audio Recording. Nothing is written to disk or sent anywhere; the
 still lives in a Metal texture and dies when the blur clears.
 
+## Taking the screen now
+
+**⌃⌥⌘B** frosts it without waiting out the idle clock — registered through
+Carbon, because an `NSEvent` global monitor would cost an Accessibility
+permission to watch every keystroke on the machine in order to catch one. From
+there it behaves like the real thing: a hand on the keyboard takes it back,
+after a four second grace long enough to let go of the keys and stand up. The
+camera is not consulted; you asked.
+
 ## Tuning
 
 Menu bar → Settings… opens a panel that floats *above* the overlay, so the
