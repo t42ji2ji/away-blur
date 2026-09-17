@@ -14,12 +14,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.settings = settings
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
-        item.button?.image = Icon.menuBar() ?? StatusItemController.symbol()
-        item.button?.image?.isTemplate = true
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
         refreshIcon()
+        Pressure.watch { [weak self] _ in self?.refreshIcon() }
     }
 
     private static func symbol() -> NSImage? {
@@ -29,7 +28,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return nil
     }
 
-    private func refreshIcon() {
+    /// The cat stays a template image while nothing is wrong, so it looks
+    /// like every other icon in the menu bar. Colour is kept for the two
+    /// levels that mean something: one that is always coloured is one nobody
+    /// looks at twice.
+    func refreshIcon() {
+        let tint: CGColor?
+        switch Pressure.level {
+        case .normal: tint = nil
+        case .warning: tint = CGColor(red: 0.98, green: 0.65, blue: 0.10, alpha: 1)
+        case .critical: tint = CGColor(red: 0.95, green: 0.30, blue: 0.25, alpha: 1)
+        }
+        if let cat = Icon.menuBar(tint: tint) {
+            item.button?.image = cat
+        } else if let fallback = StatusItemController.symbol() {
+            fallback.isTemplate = true
+            item.button?.image = fallback
+        }
         item.button?.alphaValue = preferences.isEnabled ? 1 : 0.4
     }
 

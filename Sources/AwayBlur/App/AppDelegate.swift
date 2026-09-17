@@ -51,6 +51,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controller.isPreviewing = false
             case ("preview", "toggle"): controller.isPreviewing.toggle()
             case ("settings", _): settings.show()
+            case ("pressure", let name):
+                guard let level = Pressure.level(named: name) else { break }
+                Pressure.pretend(level)
+                statusItem.refreshIcon()
             default: break
             }
         }

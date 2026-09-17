@@ -72,8 +72,10 @@ enum Icon {
         return context.makeImage()
     }
 
-    /// The menu bar cat: a template image, so the system colours it.
-    static func menuBar(cell: Int = 2) -> NSImage? {
+    /// The menu bar cat. With no tint it is a template image and the system
+    /// paints it like every other icon up there; with one it is that colour
+    /// instead, which is what memory pressure does to it.
+    static func menuBar(cell: Int = 2, tint: CGColor? = nil) -> NSImage? {
         let bytes = Cat.stamp(face: Cat.face(named: "(･ω･)"))
         let columns = Cat.body.width, rows = Cat.body.height
         let width = columns * cell, height = rows * cell
@@ -81,7 +83,7 @@ enum Icon {
                                       bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
                                       bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
                                           | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
-        context.setFillColor(CGColor(gray: 0, alpha: 1))
+        context.setFillColor(tint ?? CGColor(gray: 0, alpha: 1))
         for row in 0..<rows {
             for column in 0..<columns where bytes[row * columns + column] > 0 {
                 context.fill(CGRect(x: column * cell, y: (rows - 1 - row) * cell,
@@ -90,7 +92,7 @@ enum Icon {
         }
         guard let image = context.makeImage() else { return nil }
         let made = NSImage(cgImage: image, size: NSSize(width: width / cell, height: height / cell))
-        made.isTemplate = true
+        made.isTemplate = tint == nil
         return made
     }
 }

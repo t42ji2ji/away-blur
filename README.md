@@ -167,6 +167,22 @@ every few seconds, never on a metronome.
 Eyes stay narrow and a blank row separates them from the mouth. Widen them and
 the eyes and the ω run together into one zigzag across the whole face.
 
+The same cat sits in the menu bar. It is a template image, so the system paints
+it like every other icon up there — except when the machine is running out of
+memory, when it goes amber at warning and red at critical. That is the system's
+own pressure level, not a percentage: macOS answers normal for as long as it can
+still reclaim pages, so a Mac at 82% used with fifteen gigabytes compressed is
+still normal. Rare is the point — a colour that is always on is one nobody looks
+at twice.
+
+```sh
+# The real thing happens a few times a month, so the colour has to be reachable
+# before then. It holds until the machine crosses a level for real.
+Scripts/blurctl pressure warning
+Scripts/blurctl pressure critical
+Scripts/blurctl pressure normal
+```
+
 ## The line under it
 
 One line at a time, arriving letter by letter out of scrambled characters,

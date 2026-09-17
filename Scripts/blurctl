@@ -4,5 +4,6 @@ case "$1" in
     on|off|toggle|sharp) open "awayblur://preview/$1" ;;
     now)                  open "awayblur://blur/now" ;;
     settings)      open "awayblur://settings/show" ;;
-    *) echo "usage: blurctl now|on|off|toggle|sharp|settings" ; exit 1 ;;
+    pressure)      open "awayblur://pressure/${2:-normal}" ;;
+    *) echo "usage: blurctl now|on|off|toggle|sharp|settings|pressure LEVEL" ; exit 1 ;;
 esac
