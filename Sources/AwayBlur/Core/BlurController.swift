@@ -40,6 +40,39 @@ final class BlurController {
     private var captionTurn = 0
     private var captionSince: CFTimeInterval = 0
     private var awaySince: CFTimeInterval = 0
+    private var lastWaiting: String?
+
+    /// A shake, in cat pixels, decaying on k squared so it starts hard and
+    /// settles rather than rattling evenly to the end. The offset is rounded
+    /// to whole screen pixels per display — a fraction of a pixel here and the
+    /// art goes soft for as long as it lasts.
+    private var shakeUntil: CFTimeInterval = 0
+    private var shakeOver: CFTimeInterval = 0.5
+    private var shakeCells: Double = 0
+    private var shakeOffset = CGPoint.zero
+    private var twitchAt: CFTimeInterval = 0
+
+    private func shake(_ cells: Double, over duration: CFTimeInterval) {
+        shakeCells = cells
+        shakeOver = duration
+        shakeUntil = CACurrentMediaTime() + duration
+    }
+
+    private func updateShake() {
+        let now = CACurrentMediaTime()
+        if now >= twitchAt {
+            if twitchAt != 0 { shake(0.7, over: 0.28) }
+            twitchAt = now + Double.random(in: 18...45)
+        }
+        guard now < shakeUntil else {
+            shakeOffset = .zero
+            return
+        }
+        let remaining = (shakeUntil - now) / shakeOver
+        let amplitude = shakeCells * remaining * remaining
+        shakeOffset = CGPoint(x: Double.random(in: -1...1) * amplitude,
+                              y: Double.random(in: -1...1) * amplitude)
+    }
 
     /// A line arrives letter by letter, sits long enough to read twice, then
     /// is eaten from the right.
@@ -243,6 +276,9 @@ final class BlurController {
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
         awaySince = CACurrentMediaTime()
+        twitchAt = 0
+        shakeUntil = 0
+        lastWaiting = nil
         captionSince = 0
         captionTurn = 0
         captionLines = []
@@ -339,6 +375,12 @@ final class BlurController {
             captionSince = now
             captionLines = Caption.lines(awayFor: now - awaySince,
                                          includingWork: preferences.look == .ambient)
+            // Something over there started waiting on you while you were gone.
+            // The shake is the part you notice from across a room; the line
+            // only tells you which one once you have looked.
+            let waiting = preferences.look == .ambient ? Sessions.waiting() : nil
+            if let waiting, waiting != lastWaiting { shake(2.2, over: 0.8) }
+            lastWaiting = waiting
         }
         guard !captionLines.isEmpty else { return }
         let line = captionLines[captionTurn % captionLines.count]
@@ -363,7 +405,7 @@ final class BlurController {
         guard preferences.showsCaption, let caption else { return nil }
         let size = overlay.layer.drawableSize
         let catCell = (size.height * preferences.catSize / Double(Cat.body.height)).rounded(.down)
-        let cell = max(1, (catCell / 3).rounded())
+        let cell = max(2, (catCell * 0.45).rounded())
         let span = CGSize(width: Double(caption.width) * cell, height: Double(caption.height) * cell)
         let catBottom = preferences.showsCat
             ? (size.height + Double(Cat.body.height) * max(2, catCell)) / 2
@@ -371,7 +413,7 @@ final class BlurController {
         return BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
-                            y: (catBottom + catCell * 1.4).rounded()),
+                            y: (catBottom + catCell * 2.6).rounded()),
             cell: cell,
             alpha: ease(progress))
     }
@@ -390,10 +432,12 @@ final class BlurController {
         let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
         let span = CGSize(width: columns * cell, height: rows * cell)
         let float = (sin(CACurrentMediaTime() * 2 * .pi / 2.6) * cell * 1.5).rounded()
+        let shakeX = (shakeOffset.x * cell).rounded()
+        let shakeY = (shakeOffset.y * cell).rounded()
         return BlurRenderer.Stamp(
             texture: texture,
-            origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
-                            y: ((size.height - span.height) / 2 + float).rounded()),
+            origin: CGPoint(x: ((size.width - span.width) / 2 + shakeX).rounded(),
+                            y: ((size.height - span.height) / 2 + float + shakeY).rounded()),
             cell: cell,
             alpha: ease(progress))
     }
@@ -403,7 +447,10 @@ final class BlurController {
         let settings = preferences.current
         let shown = pinned ?? progress
         let look = FrameLook(settings: settings, progress: shown)
-        if preferences.showsCat { updateBlink() }
+        if preferences.showsCat {
+            updateBlink()
+            updateShake()
+        }
         updateCaption()
         for overlay in overlays {
             guard let picture = overlay.picture else { continue }

@@ -93,7 +93,7 @@ enum Caption {
 
     // MARK: - Drawing
 
-    private static let scrambleAlphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%*+=-/\\<>")
+    private static let scrambleAlphabet = PixelFont.alphabet.filter { $0 != " " }
 
     /// The line as it looks partway through arriving.
     ///
@@ -118,39 +118,8 @@ enum Caption {
         return String(characters.prefix(left))
     }
 
-    /// One byte per pixel, no antialiasing: the glyphs come out of the font
-    /// already one bit deep, so blowing them up by a whole number puts them in
-    /// the same world as the cat rather than next to it.
-    static func bitmap(_ text: String, pointSize: CGFloat = 9) -> (bytes: [UInt8], width: Int, height: Int)? {
-        guard !text.isEmpty else { return nil }
-        let font = NSFont.monospacedSystemFont(ofSize: pointSize, weight: .bold)
-        let attributed = NSAttributedString(string: text, attributes: [
-            .font: font,
-            .foregroundColor: NSColor.white,
-            .kern: 1.0,
-        ])
-        let line = CTLineCreateWithAttributedString(attributed)
-        let bounds = CTLineGetImageBounds(line, nil)
-        let width = Int(bounds.width.rounded(.up)) + 2
-        let height = Int(pointSize.rounded(.up)) + 4
-        guard width > 0, height > 0,
-              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
-                                      bytesPerRow: width, space: CGColorSpaceCreateDeviceGray(),
-                                      bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
-        context.setShouldAntialias(false)
-        context.setShouldSmoothFonts(false)
-        context.setAllowsAntialiasing(false)
-        context.setFillColor(CGColor(gray: 0, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        context.textPosition = CGPoint(x: 1 - bounds.origin.x, y: 2)
-        CTLineDraw(line, context)
-        guard let data = context.data else { return nil }
-        let pixels = data.bindMemory(to: UInt8.self, capacity: width * height)
-        var bytes = [UInt8](repeating: 0, count: width * height)
-        for index in 0..<(width * height) {
-            bytes[index] = pixels[index] > 127 ? 255 : 0
-        }
-        return (bytes, width, height)
+    static func bitmap(_ text: String) -> (bytes: [UInt8], width: Int, height: Int)? {
+        PixelFont.bitmap(text)
     }
 }
 

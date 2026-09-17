@@ -259,7 +259,7 @@ extension Diagnostics {
         let catCell = (Double(height) * size / Double(Cat.body.height)).rounded(.down)
         let catSpan = CGSize(width: Double(Cat.body.width) * catCell,
                              height: Double(Cat.body.height) * catCell)
-        let lineCell = max(1, (catCell / 3).rounded())
+        let lineCell = max(2, (catCell * 0.45).rounded())
         let lineSpan = CGSize(width: Double(caption.width) * lineCell,
                               height: Double(caption.height) * lineCell)
         let placed = BlurRenderer.Stamp(
@@ -270,7 +270,7 @@ extension Diagnostics {
         let line = BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((Double(width) - lineSpan.width) / 2).rounded(),
-                            y: ((Double(height) + catSpan.height) / 2 + catCell * 1.4).rounded()),
+                            y: ((Double(height) + catSpan.height) / 2 + catCell * 2.6).rounded()),
             cell: lineCell, alpha: 1)
 
         guard let image = renderer.renderToImage(picture: picture,

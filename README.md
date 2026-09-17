@@ -135,6 +135,15 @@ Three rules keep it sharp, and all three have to hold at once:
    drifting — the float is rounded every frame.
 3. Nearest sampling. A pixel is a square and it stays a square.
 
+It shakes when a cmux session starts waiting on you: a random offset decaying
+on the square of the time left, so it starts hard and settles instead of
+rattling evenly to the end, and rounded to whole screen pixels per display
+because a fraction of a pixel would soften the art for as long as it lasted.
+The technique is lifted from the pet in
+[bili-open-live](https://github.com/t42ji2ji). It also twitches by itself every
+half minute or so. The shake is the part you notice from across a room; the
+line only tells you which session once you have looked.
+
 It is drawn dark on a light screen and light on a dark one, decided once from
 the picture's own average rather than per pixel, so the shape never breaks up
 over a busy background. While it is drifting the display link drops to about
@@ -168,10 +177,10 @@ line of the cat's own opinion each time round.
 The work lines are left out of the privacy look on purpose. A caption naming
 what you are building rather defeats a screen you made unreadable.
 
-The text is a real font rendered small with antialiasing off, which leaves the
-glyphs one bit deep, then blown up by the same whole-number rule as the cat. A
-9pt system mono at 4x looks like it was drawn on the grid rather than set next
-to it.
+The text is a 5x7 font drawn by hand on the same grid as the cat. A real
+typeface shrunk to nine pixels with antialiasing off is a *squashed* typeface,
+not a drawn one — the stems land where they land, and the letters come out
+uneven next to art that was placed pixel by pixel.
 
 ```sh
 # What it would say right now, for both looks.
