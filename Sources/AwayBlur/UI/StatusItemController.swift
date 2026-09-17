@@ -36,8 +36,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
-        let now = NSMenuItem(title: "Blur now", action: #selector(blurNow), keyEquivalent: "b")
-        now.keyEquivalentModifierMask = [.control, .option, .command]
+        let now = NSMenuItem(title: "Blur now  \(Hotkey.describe(keyCode: preferences.hotkeyCode, modifiers: preferences.hotkeyModifiers))",
+                             action: #selector(blurNow), keyEquivalent: "")
         now.target = self
         menu.addItem(now)
         menu.addItem(.separator())

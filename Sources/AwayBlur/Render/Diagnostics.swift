@@ -180,3 +180,55 @@ extension Diagnostics {
                      check.framesSeen, check.frameSize.width, check.frameSize.height, elapsed))
     }
 }
+
+extension Diagnostics {
+
+    /// `AwayBlur --cat out.png` — every face on one sheet, at the size it will
+    /// actually be drawn, so the art can be looked at without the screen going
+    /// away to see it.
+    static func drawCat(to path: String, cell: Double = 8) {
+        setvbuf(stdout, nil, _IONBF, 0)
+        guard let renderer = BlurRenderer() else { print("no Metal device"); return }
+
+        let columns = Double(Cat.body.width), rows = Double(Cat.body.height)
+        let tileWidth = Int(columns * cell + cell * 6)
+        let tileHeight = Int(rows * cell + cell * 6)
+        let across = 3
+        let down = (Cat.faces.count + across - 1) / across
+
+        guard let flat = Offscreen.flat(width: tileWidth, height: tileHeight, level: 0.55),
+              let picture = renderer.makePicture(from: flat),
+              let space = CGColorSpace(name: BlurRenderer.colourSpace),
+              let sheet = CGContext(data: nil, width: tileWidth * across, height: tileHeight * down,
+                                    bitsPerComponent: 8, bytesPerRow: tileWidth * across * 4, space: space,
+                                    bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+                                        | CGBitmapInfo.byteOrder32Little.rawValue) else {
+            print("could not set up the sheet")
+            return
+        }
+
+        for (index, face) in Cat.faces.enumerated() {
+            guard let stamp = renderer.makeStamp(face: face) else { continue }
+            let span = CGSize(width: columns * cell, height: rows * cell)
+            let placed = BlurRenderer.Stamp(
+                texture: stamp,
+                origin: CGPoint(x: ((Double(tileWidth) - span.width) / 2).rounded(),
+                                y: ((Double(tileHeight) - span.height) / 2).rounded()),
+                cell: cell, alpha: 1)
+            guard let tile = renderer.renderToImage(
+                picture: picture, size: CGSize(width: tileWidth, height: tileHeight),
+                look: FrameLook(blur: 0), maxRadius: 240, stamp: placed) else { continue }
+            let column = index % across, row = index / across
+            sheet.draw(tile, in: CGRect(x: column * tileWidth,
+                                        y: (down - 1 - row) * tileHeight,
+                                        width: tileWidth, height: tileHeight))
+            print("\(face.id) at \(column),\(row)")
+        }
+        guard let image = sheet.makeImage(),
+              Offscreen.write(image, to: URL(fileURLWithPath: path)) else {
+            print("could not write \(path)")
+            return
+        }
+        print("wrote \(path)")
+    }
+}

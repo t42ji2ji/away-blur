@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 
 /// The two looks. Same shader, different numbers and different timing.
@@ -9,6 +10,13 @@ enum Look: String, Codable, CaseIterable {
         switch self {
         case .privacy: return "Privacy"
         case .ambient: return "Ambient"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .privacy: return "Nothing readable, and gone the instant you touch anything."
+        case .ambient: return "Frosted rather than hidden. Slow to arrive, slow to leave."
         }
     }
 }
@@ -79,6 +87,16 @@ final class Preferences: ObservableObject {
     @Published var usesCamera: Bool { didSet { defaults.set(usesCamera, forKey: "usesCamera") } }
     /// How long a face holds the screen before the camera is asked again.
     @Published var cameraRecheck: Double { didSet { defaults.set(cameraRecheck, forKey: "cameraRecheck") } }
+    @Published var hotkeyCode: Int { didSet { defaults.set(hotkeyCode, forKey: "hotkeyCode"); onHotkeyChange?() } }
+    @Published var hotkeyModifiers: Int { didSet { defaults.set(hotkeyModifiers, forKey: "hotkeyModifiers"); onHotkeyChange?() } }
+    /// When the key last actually arrived. Registering one proves nothing:
+    /// another app may already own it, silently.
+    @Published var hotkeyLastFired: Date?
+    @Published var showsCat: Bool { didSet { defaults.set(showsCat, forKey: "showsCat") } }
+    /// A face's own kaomoji, or "random" for a different one each time.
+    @Published var catFace: String { didSet { defaults.set(catFace, forKey: "catFace") } }
+
+    var onHotkeyChange: (() -> Void)?
     @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
     @Published var ambient: LookSettings { didSet { store(ambient, "ambient") } }
 
@@ -89,6 +107,10 @@ final class Preferences: ObservableObject {
         idleDelay = defaults.object(forKey: "idleDelay") as? Double ?? 90
         usesCamera = defaults.object(forKey: "usesCamera") as? Bool ?? false
         cameraRecheck = defaults.object(forKey: "cameraRecheck") as? Double ?? 60
+        showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
+        catFace = defaults.string(forKey: "catFace") ?? Cat.faces[0].id
+        hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B
+        hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient
         privacy = Preferences.read("privacy", defaults) ?? .privacyDefaults
         ambient = Preferences.read("ambient", defaults) ?? .ambientDefaults

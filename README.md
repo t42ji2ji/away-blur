@@ -119,6 +119,35 @@ Screen Recording has to be granted in System Settings → Privacy & Security →
 Screen & System Audio Recording. Nothing is written to disk or sent anywhere; the
 still lives in a Metal texture and dies when the blur clears.
 
+## The cat
+
+A cat floats in the middle of the frosted screen, and its face is a kaomoji.
+
+The art is text in `Sprite.swift` — `#` is ink, anything else is not — and a
+face is a second grid whose ink is cut *out* of the body, the way the eyes of a
+paper cut-out are holes rather than marks. There is no asset pipeline: changing
+the art means editing characters in the source, and it diffs.
+
+Three rules keep it sharp, and all three have to hold at once:
+
+1. A whole number of screen pixels per art pixel. Never a fraction.
+2. The whole sprite lands on a whole screen pixel, including while it is
+   drifting — the float is rounded every frame.
+3. Nearest sampling. A pixel is a square and it stays a square.
+
+It is drawn dark on a light screen and light on a dark one, decided once from
+the picture's own average rather than per pixel, so the shape never breaks up
+over a busy background. While it is drifting the display link drops to about
+15fps; the screen is not being watched.
+
+```sh
+# Every face on one sheet, at the size it is actually drawn.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --cat ~/Desktop/cats.png
+```
+
+Eyes stay narrow and a blank row separates them from the mouth. Widen them and
+the eyes and the ω run together into one zigzag across the whole face.
+
 ## Taking the screen now
 
 **⌃⌥⌘B** frosts it without waiting out the idle clock — registered through

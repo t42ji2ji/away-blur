@@ -16,6 +16,8 @@ enum BlurShaders {
         float4 look;    // blur 0-1, dim 0-1, wash 0-1, grain 0-1
         float4 misc;    // time, unused
         float4 cover;   // fraction of the texture the screen occupies
+        float4 stamp;   // origin (px), cell size (px), alpha
+        float4 grid;    // columns, rows
     };
 
     vertex float4 fullScreenVertex(uint id [[vertex_id]]) {
@@ -29,8 +31,11 @@ enum BlurShaders {
 
     fragment float4 blurFragment(float4 position [[position]],
                                  constant Uniforms &u [[buffer(0)]],
-                                 texture2d<float> picture [[texture(0)]]) {
+                                 texture2d<float> picture [[texture(0)]],
+                                 texture2d<float> stamp [[texture(1)]]) {
         constexpr sampler smooth(filter::linear, mip_filter::linear, address::clamp_to_edge);
+        // Nearest, always. A pixel is a square and it stays a square.
+        constexpr sampler blocky(filter::nearest, address::clamp_to_edge);
 
         const float2 frameSize = u.frame.xy;
         const float  maxRadius = u.frame.z;
@@ -73,6 +78,25 @@ enum BlurShaders {
         // Sinking towards black. The values here are what the screen shows,
         // not light, so the fall does not need a curve on top.
         colour *= 1.0 - dim;
+
+        // The cat. Drawn at a whole number of pixels per cell, placed on a
+        // whole pixel, sampled nearest: those three together are the entire
+        // trick to pixel art that does not go soft when it is made bigger.
+        if (u.stamp.w > 0.001) {
+            float2 cell = float2(u.stamp.z);
+            float2 span = u.grid.xy * cell;
+            float2 local = position.xy - u.stamp.xy;
+            if (all(local >= 0.0) && all(local < span)) {
+                float ink = stamp.sample(blocky, local / span).r;
+                // Dark on a light screen, light on a dark one, decided once
+                // from the picture's own average rather than per pixel, so the
+                // shape never breaks up over a busy background.
+                float3 average = picture.sample(smooth, cover * 0.5, level(maxLevel)).rgb;
+                float lit = dot(average, float3(0.299, 0.587, 0.114));
+                float3 tone = lit > 0.5 ? float3(0.10) : float3(0.93);
+                colour = mix(colour, tone, ink * u.stamp.w);
+            }
+        }
 
         // Grain, so a wide dark gradient does not band on an 8-bit panel.
         if (grain > 0.0005) {

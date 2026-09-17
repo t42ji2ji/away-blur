@@ -30,6 +30,7 @@ final class BlurController {
     private var retryAfter: CFTimeInterval = 0
     private var permission = (checked: CFTimeInterval(0), granted: false)
     private let camera = FaceCheck()
+    private var stamp: MTLTexture?
     private(set) var lastFaceSeen: CFTimeInterval = 0
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
@@ -226,6 +227,7 @@ final class BlurController {
         }
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
+        stamp = renderer.makeStamp(face: chosenFace())
         progress = 0
         // Held, not rising: the ramp only starts once the sharp copy is up.
         phase = .held
@@ -237,7 +239,11 @@ final class BlurController {
     // MARK: - The ramp
 
     private func startLink() {
-        guard link == nil, let screen = NSScreen.main else { return }
+        if let link {
+            link.preferredFrameRateRange = .default
+            return
+        }
+        guard let screen = NSScreen.main else { return }
         lastTick = 0
         let created = screen.displayLink(target: self, selector: #selector(tick))
         created.add(to: .main, forMode: .common)
@@ -272,14 +278,48 @@ final class BlurController {
 
         drawFrame()
 
-        // Nothing moves while it is held, so stop asking the display for frames.
-        if phase == .held { stopLink() }
+        // Nothing moves while it is held except the cat, and a cat drifting
+        // up and down does not need every frame the display can give.
+        if phase == .held {
+            if preferences.showsCat {
+                link?.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 20, preferred: 15)
+            } else {
+                stopLink()
+            }
+        }
+    }
+
+    /// The face for this run. Random means a different one each time the
+    /// screen goes, which is the only place the choice is ever made.
+    private func chosenFace() -> Face {
+        preferences.catFace == "random"
+            ? (Cat.faces.randomElement() ?? Cat.faces[0])
+            : Cat.face(named: preferences.catFace)
+    }
+
+    /// Whole pixels per cell, whole pixels of travel, centred. Fractions of a
+    /// pixel anywhere here and the art goes soft.
+    private func placement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
+        guard preferences.showsCat, let stamp else { return nil }
+        let size = overlay.layer.drawableSize
+        let columns = Double(stamp.width), rows = Double(stamp.height)
+        let cell = max(2, (size.height * 0.22 / rows).rounded(.down))
+        let span = CGSize(width: columns * cell, height: rows * cell)
+        let float = (sin(CACurrentMediaTime() * 2 * .pi / 4.5) * cell * 1.5).rounded()
+        let eased = min(max((progress - 0.3) / 0.5, 0), 1)
+        return BlurRenderer.Stamp(
+            texture: stamp,
+            origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
+                            y: ((size.height - span.height) / 2 + float).rounded()),
+            cell: cell,
+            alpha: eased * eased * (3 - 2 * eased))
     }
 
     private func drawFrame(revealing: Bool = false) {
         guard let renderer else { return }
         let settings = preferences.current
-        let look = FrameLook(settings: settings, progress: pinned ?? progress)
+        let shown = pinned ?? progress
+        let look = FrameLook(settings: settings, progress: shown)
         for overlay in overlays {
             guard let picture = overlay.picture else { continue }
             var arrived: (@Sendable () -> Void)?
@@ -291,7 +331,8 @@ final class BlurController {
                 }
             }
             renderer.render(picture: picture, into: overlay.layer, look: look,
-                            maxRadius: settings.blurRadius, time: 0, onScreen: arrived)
+                            maxRadius: settings.blurRadius, time: 0,
+                            stamp: placement(on: overlay, progress: shown), onScreen: arrived)
         }
     }
 
@@ -308,6 +349,7 @@ final class BlurController {
         stopLink()
         overlays.forEach { $0.close() }
         overlays.removeAll()
+        stamp = nil
         phase = .hidden
         progress = 0
         // A preview never outlives its own overlay. Anything that takes the

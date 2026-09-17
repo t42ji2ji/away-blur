@@ -17,11 +17,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings = SettingsPanel(preferences: preferences, controller: controller)
         statusItem = StatusItemController(preferences: preferences, controller: controller, settings: settings)
         controller.isTuning = { [weak settings] in settings?.isVisible ?? false }
-        hotkey = Hotkey { [weak self] in self?.controller.blurNow() }
-        if hotkey == nil { FileLog.write("could not register \(Hotkey.title)") }
+        hotkey = Hotkey { [weak self] in
+            self?.preferences.hotkeyLastFired = Date()
+            self?.controller.blurNow()
+        }
+        preferences.onHotkeyChange = { [weak self] in self?.bindHotkey() }
+        bindHotkey()
 
         FileLog.write("launched, screen recording granted: \(ScreenSnapshot.hasPermission())")
         askForPermissionIfNeeded()
+    }
+
+    private func bindHotkey() {
+        hotkey?.bind(keyCode: preferences.hotkeyCode, modifiers: preferences.hotkeyModifiers)
     }
 
     /// `awayblur://preview/on` and friends, so the look can be driven from a

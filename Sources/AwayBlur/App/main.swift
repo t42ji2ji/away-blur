@@ -11,6 +11,12 @@ if let index = CommandLine.arguments.firstIndex(of: "--compare"), CommandLine.ar
     exit(0)
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--cat") {
+    let path = CommandLine.arguments.count > index + 1 ? CommandLine.arguments[index + 1] : "cat.png"
+    Diagnostics.drawCat(to: path)
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--camera") {
     Diagnostics.lookThroughCamera()
     exit(0)

@@ -124,7 +124,8 @@ enum Offscreen {
 extension BlurRenderer {
 
     /// One pass into a texture we can read back, with no window involved.
-    func renderToImage(picture: Picture, size: CGSize, look: FrameLook, maxRadius: Double) -> CGImage? {
+    func renderToImage(picture: Picture, size: CGSize, look: FrameLook, maxRadius: Double,
+                       stamp: Stamp? = nil) -> CGImage? {
         let width = Int(size.width)
         let height = Int(size.height)
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -132,7 +133,7 @@ extension BlurRenderer {
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .shared
         guard let target = makeTexture(descriptor) else { return nil }
-        guard render(picture: picture, into: target, look: look, maxRadius: maxRadius) else { return nil }
+        guard render(picture: picture, into: target, look: look, maxRadius: maxRadius, stamp: stamp) else { return nil }
 
         let bytesPerRow = width * 4
         var bytes = [UInt8](repeating: 0, count: bytesPerRow * height)
@@ -166,6 +167,18 @@ extension Offscreen {
         let blockWidth = Double(width) * fraction.x
         let blockHeight = Double(height) * fraction.y
         context.fill(CGRect(x: 0, y: Double(height) - blockHeight, width: blockWidth, height: blockHeight))
+        return context.makeImage()
+    }
+
+    /// A flat field, for looking at something drawn on top of it.
+    static func flat(width: Int, height: Int, level: Double) -> CGImage? {
+        guard let space = CGColorSpace(name: BlurRenderer.colourSpace),
+              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: width * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+                                          | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+        context.setFillColor(CGColor(red: level, green: level, blue: level, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         return context.makeImage()
     }
 
