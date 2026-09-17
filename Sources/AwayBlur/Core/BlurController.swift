@@ -32,10 +32,37 @@ final class BlurController {
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
 
+    /// Long enough to take your hand off the keyboard after asking for a
+    /// preview, before the same keyboard is what takes it away again.
+    private static let previewGrace: CFTimeInterval = 1.5
+
+    /// True while the settings panel is up. That is the one case where the
+    /// blur may ignore the keyboard: you are dragging sliders, the panel
+    /// floats above the overlay, and its toggle is right there.
+    var isTuning: () -> Bool = { false }
+
     /// Holds the blur up regardless of whether anyone is typing, so the look
     /// can be tuned while looking at it.
     var isPreviewing = false {
-        didSet { if isPreviewing != oldValue { decide() } }
+        didSet {
+            guard isPreviewing != oldValue else { return }
+            previewStarted = isPreviewing ? CACurrentMediaTime() : 0
+            decide()
+        }
+    }
+
+    private var previewStarted: CFTimeInterval = 0
+
+    private var withinPreviewGrace: Bool {
+        CACurrentMediaTime() - previewStarted <= BlurController.previewGrace
+    }
+
+    /// Takes the screen back, whatever put it away.
+    func clear() {
+        isPreviewing = false
+        guard isShowing else { return }
+        phase = .falling
+        startLink()
     }
 
     var isShowing: Bool { phase != .hidden }
@@ -72,8 +99,13 @@ final class BlurController {
     private func shouldShow() -> Bool {
         let idle = Presence.idleSeconds()
         if isShowing {
-            // Once it is up, only a hand on the keyboard or mouse takes it down.
-            return isPreviewing || idle >= 0.4
+            // A preview holds while the settings panel is open, and for its
+            // first moment either way. Both have to agree with the rule in
+            // `decide()` that ends a preview, or the two take turns and the
+            // overlay flickers.
+            if isPreviewing, isTuning() || withinPreviewGrace { return true }
+            // Otherwise a hand on the keyboard or mouse takes it down.
+            return idle >= 0.4
         }
         guard hasPermission, CACurrentMediaTime() >= retryAfter else { return false }
         if isPreviewing { return true }
@@ -82,6 +114,11 @@ final class BlurController {
     }
 
     private func decide() {
+        // A preview is not a mode you can get stuck in: touch anything and it
+        // is over, the same as the real thing.
+        if isPreviewing, !isTuning(), !withinPreviewGrace, Presence.idleSeconds() < 0.4 {
+            isPreviewing = false
+        }
         let wanted = shouldShow()
         switch (wanted, phase) {
         case (true, .hidden):
@@ -110,10 +147,10 @@ final class BlurController {
         guard !screens.isEmpty else { isCapturing = false; return }
 
         Task { [weak self] in
-            var pictures: [CGDirectDisplayID: MTLTexture] = [:]
+            var pictures: [CGDirectDisplayID: BlurRenderer.Picture] = [:]
             for (_, id) in screens {
                 guard let image = await ScreenSnapshot.capture(display: id) else { continue }
-                let made: MTLTexture? = await Task.detached(priority: .userInitiated) {
+                let made: BlurRenderer.Picture? = await Task.detached(priority: .userInitiated) {
                     renderer.makePicture(from: image)
                 }.value
                 if let made { pictures[id] = made }
@@ -133,7 +170,7 @@ final class BlurController {
         }
     }
 
-    private func present(screens: [(NSScreen, CGDirectDisplayID)], pictures: [CGDirectDisplayID: MTLTexture]) {
+    private func present(screens: [(NSScreen, CGDirectDisplayID)], pictures: [CGDirectDisplayID: BlurRenderer.Picture]) {
         guard let renderer else { return }
         for (screen, id) in screens {
             guard let picture = pictures[id] else { continue }
@@ -209,11 +246,22 @@ final class BlurController {
         overlays.removeAll()
         phase = .hidden
         progress = 0
+        // A preview never outlives its own overlay. Anything that takes the
+        // screen back has to end the preview too, or it comes right back.
+        isPreviewing = false
+        // Never come straight back: a blur that reappears faster than a hand
+        // can reach the menu bar is a trap.
+        retryAfter = max(retryAfter, CACurrentMediaTime() + 1)
         schedulePoll(interval: 0.25)
     }
 
-    /// Takes it down with no animation: the display is going dark anyway.
+    /// Takes it down with no animation, and gives up any preview with it.
+    ///
+    /// Everything that calls this is the system saying something changed under
+    /// us. Holding a preview through that is how the overlay came straight
+    /// back up a moment later, over and over, with no way to reach the menu.
     private func hideNow() {
+        isPreviewing = false
         guard isShowing else { return }
         finishHiding()
     }

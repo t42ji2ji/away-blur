@@ -13,7 +13,16 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp ".build/$CONFIG/AwayBlur" "$APP/Contents/MacOS/AwayBlur"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-codesign --force --sign - --identifier com.dora.away-blur "$APP" >/dev/null
+# A stable signing identity matters more than it looks: Screen Recording is
+# remembered against the signature, and an ad-hoc one changes with every build,
+# so every rebuild would cost another trip to System Settings.
+IDENTITY="Away Blur Dev"
+if security find-identity -p codesigning | grep -q "$IDENTITY"; then
+    codesign --force --sign "$IDENTITY" --identifier com.dora.away-blur "$APP" >/dev/null
+else
+    echo "warning: '$IDENTITY' is not in the keychain; signing ad-hoc, which drops Screen Recording" >&2
+    codesign --force --sign - --identifier com.dora.away-blur "$APP" >/dev/null
+fi
 echo "built $APP"
 
 if [ "$1" = "--run" ]; then

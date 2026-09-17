@@ -54,6 +54,10 @@ struct FrameLook {
     var wash: Double
     var grain: Double
 
+    init(blur: Double, dim: Double = 0, wash: Double = 0, grain: Double = 0) {
+        self.blur = blur; self.dim = dim; self.wash = wash; self.grain = grain
+    }
+
     /// Blur leads, dimming follows a little behind, wash rides along.
     init(settings: LookSettings, progress: Double) {
         let p = min(max(progress, 0), 1)

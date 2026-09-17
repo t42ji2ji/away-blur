@@ -32,7 +32,10 @@ final class Overlay {
     let displayID: CGDirectDisplayID
     let window: OverlayWindow
     let layer: CAMetalLayer
-    var picture: MTLTexture?
+    var picture: BlurRenderer.Picture?
+
+    /// Over everything, including the menu bar.
+    static let awayLevel = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
 
     init(screen: NSScreen, displayID: CGDirectDisplayID, renderer: BlurRenderer) {
         self.displayID = displayID
@@ -51,7 +54,7 @@ final class Overlay {
         window.hasShadow = false
         window.ignoresMouseEvents = true
         window.isReleasedWhenClosed = false
-        window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+        window.level = Overlay.awayLevel
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         window.setFrame(screen.frame, display: false)
     }

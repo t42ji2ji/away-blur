@@ -15,6 +15,7 @@ enum BlurShaders {
         float4 frame;   // drawable size (px), max radius (px), max mip level
         float4 look;    // blur 0-1, dim 0-1, wash 0-1, grain 0-1
         float4 misc;    // time, unused
+        float4 cover;   // fraction of the texture the screen occupies
     };
 
     vertex float4 fullScreenVertex(uint id [[vertex_id]]) {
@@ -39,9 +40,9 @@ enum BlurShaders {
         const float  wash      = u.look.z;
         const float  grain     = u.look.w;
         const float  time      = u.misc.x;
+        const float2 cover     = u.cover.xy;
 
-        float2 texCoord = position.xy / frameSize;
-        float2 pictureSize = float2(picture.get_width(), picture.get_height());
+        float2 texCoord = (position.xy / frameSize) * cover;
 
         float radius = blur * maxRadius;
         // Naming this `level` would shadow Metal's level() selector.
@@ -51,7 +52,7 @@ enum BlurShaders {
         if (radius < 0.75) {
             colour = picture.sample(smooth, texCoord, level(0.0)).rgb;
         } else {
-            float2 stride = (radius * 0.45) / pictureSize;
+            float2 stride = ((radius * 0.45) / frameSize) * cover;
             const float weights[3] = { 1.0, 2.0, 1.0 };
             colour = float3(0.0);
             for (int y = -1; y <= 1; y++) {
@@ -65,7 +66,7 @@ enum BlurShaders {
         // Wash towards the picture's own average colour (the top of the
         // pyramid), so the screen reads as lit glass rather than a soft photo.
         if (wash > 0.0005) {
-            float3 average = picture.sample(smooth, float2(0.5, 0.5), level(maxLevel)).rgb;
+            float3 average = picture.sample(smooth, cover * 0.5, level(maxLevel)).rgb;
             colour = mix(colour, average, wash);
         }
 

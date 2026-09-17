@@ -36,6 +36,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
+        if controller.isShowing {
+            let clear = NSMenuItem(title: "Clear the screen now", action: #selector(clearNow), keyEquivalent: "")
+            clear.target = self
+            menu.addItem(clear)
+            menu.addItem(.separator())
+        }
+
         let enabled = NSMenuItem(title: "Blur when I'm away", action: #selector(toggleEnabled), keyEquivalent: "")
         enabled.target = self
         enabled.state = preferences.isEnabled ? .on : .off
@@ -52,7 +59,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        let preview = NSMenuItem(title: "Hold preview", action: #selector(togglePreview), keyEquivalent: "p")
+        let preview = NSMenuItem(title: "Preview the look now", action: #selector(togglePreview), keyEquivalent: "p")
         preview.target = self
         preview.state = controller.isPreviewing ? .on : .off
         menu.addItem(preview)
@@ -98,6 +105,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func openSettings() {
         settings.show()
+    }
+
+    @objc private func clearNow() {
+        controller.clear()
     }
 
     @objc private func openPrivacySettings() {

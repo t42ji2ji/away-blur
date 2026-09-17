@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller = BlurController(preferences: preferences)
         settings = SettingsPanel(preferences: preferences, controller: controller)
         statusItem = StatusItemController(preferences: preferences, controller: controller, settings: settings)
+        controller.isTuning = { [weak settings] in settings?.isVisible ?? false }
 
         FileLog.write("launched, screen recording granted: \(ScreenSnapshot.hasPermission())")
         askForPermissionIfNeeded()

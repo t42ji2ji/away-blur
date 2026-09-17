@@ -75,6 +75,8 @@ private struct SettingsView: View {
 @MainActor
 final class SettingsPanel {
     private var panel: NSPanel?
+
+    var isVisible: Bool { panel?.isVisible ?? false }
     private let preferences: Preferences
     private let controller: BlurController
 
