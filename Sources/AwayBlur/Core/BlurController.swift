@@ -413,7 +413,7 @@ final class BlurController {
         return BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
-                            y: (catBottom + catCell * 5.0).rounded()),
+                            y: (catBottom + catCell * 8.0).rounded()),
             cell: cell,
             alpha: ease(progress))
     }

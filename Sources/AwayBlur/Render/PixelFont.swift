@@ -7,10 +7,10 @@ import Foundation
 /// the letters come out uneven next to art that was placed pixel by pixel.
 enum PixelFont {
 
-    static let width = 5
+    static let width = 6      // 5 drawn, plus the column bolding pushes into
     static let height = 7
     /// One blank column between letters.
-    static let advance = 6
+    static let advance = 7
 
     static func glyph(_ character: Character) -> [String] {
         table[Character(character.uppercased())] ?? blank
@@ -77,6 +77,11 @@ enum PixelFont {
     ]
 
     /// One byte per pixel, the line set solid.
+    ///
+    /// Every stem is drawn again one column to the right, which is how bitmap
+    /// faces have always been emboldened: two pixels wide instead of one, and
+    /// the counters stay open because the shapes were designed with three
+    /// pixels of air in them.
     static func bitmap(_ text: String) -> (bytes: [UInt8], width: Int, height: Int)? {
         let characters = Array(text)
         guard !characters.isEmpty else { return nil }
@@ -87,8 +92,9 @@ enum PixelFont {
             let left = index * advance
             for row in 0..<height {
                 let line = Array(rows[row])
-                for column in 0..<self.width where line[column] == "#" {
+                for column in 0..<5 where line[column] == "#" {
                     bytes[row * width + left + column] = 255
+                    bytes[row * width + left + column + 1] = 255
                 }
             }
         }

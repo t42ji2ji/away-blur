@@ -177,10 +177,18 @@ line of the cat's own opinion each time round.
 The work lines are left out of the privacy look on purpose. A caption naming
 what you are building rather defeats a screen you made unreadable.
 
-The text is a 5x7 font drawn by hand on the same grid as the cat. A real
-typeface shrunk to nine pixels with antialiasing off is a *squashed* typeface,
-not a drawn one — the stems land where they land, and the letters come out
-uneven next to art that was placed pixel by pixel.
+The text is a 5x7 font drawn by hand on the same grid as the cat, then
+emboldened the way bitmap faces always have been: every stem drawn again one
+column to the right. The counters stay open because the shapes were designed
+with three pixels of air in them. A real typeface shrunk to nine pixels with
+antialiasing off is a *squashed* typeface, not a drawn one — the stems land
+where they land, and the letters come out uneven next to art that was placed
+pixel by pixel.
+
+```sh
+# The whole alphabet at drawing size, to see what bolding did to the counters.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --font ~/Desktop/font.png
+```
 
 ```sh
 # What it would say right now, for both looks.

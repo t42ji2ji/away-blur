@@ -270,7 +270,7 @@ extension Diagnostics {
         let line = BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((Double(width) - lineSpan.width) / 2).rounded(),
-                            y: ((Double(height) + catSpan.height) / 2 + catCell * 5.0).rounded()),
+                            y: ((Double(height) + catSpan.height) / 2 + catCell * 8.0).rounded()),
             cell: lineCell, alpha: 1)
 
         guard let image = renderer.renderToImage(picture: picture,
@@ -282,6 +282,37 @@ extension Diagnostics {
             return
         }
         print("cat cell \(Int(catCell))px, line cell \(Int(lineCell))px, line \(caption.width)x\(caption.height) cells")
+        print("wrote \(path)")
+    }
+}
+
+extension Diagnostics {
+
+    /// `AwayBlur --font out.png` — the whole alphabet at drawing size, to see
+    /// whether the counters survived being emboldened.
+    static func drawFont(to path: String, cell: Double = 6) {
+        setvbuf(stdout, nil, _IONBF, 0)
+        guard let renderer = BlurRenderer() else { print("no Metal device"); return }
+        let rows = ["ABCDEFGHIJKLM", "NOPQRSTUVWXYZ", "0123456789", "AWAY 8 MINUTES", "BATTERY 100%"]
+        let width = Int(Double(rows.map(\.count).max() ?? 1) * Double(PixelFont.advance) * cell) + 40
+        let height = Int(Double(rows.count) * Double(PixelFont.height + 4) * cell) + 40
+        guard let flat = Offscreen.flat(width: width, height: height, level: 0.55),
+              let picture = renderer.makePicture(from: flat) else { print("no picture"); return }
+
+        var image: CGImage?
+        for (index, line) in rows.enumerated() {
+            guard let caption = renderer.makeCaption(line) else { continue }
+            let placed = BlurRenderer.Stamp(
+                texture: caption, origin: CGPoint(x: 20, y: 20 + Double(index) * Double(PixelFont.height + 4) * cell),
+                cell: cell, alpha: 1)
+            let base = image.flatMap { renderer.makePicture(from: $0) } ?? picture
+            image = renderer.renderToImage(picture: base, size: CGSize(width: width, height: height),
+                                           look: FrameLook(blur: 0), maxRadius: 240, caption: placed)
+        }
+        guard let image, Offscreen.write(image, to: URL(fileURLWithPath: path)) else {
+            print("could not write \(path)")
+            return
+        }
         print("wrote \(path)")
     }
 }
