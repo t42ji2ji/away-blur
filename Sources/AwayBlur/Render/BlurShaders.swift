@@ -93,7 +93,7 @@ enum BlurShaders {
                 // shape never breaks up over a busy background.
                 float3 average = picture.sample(smooth, cover * 0.5, level(maxLevel)).rgb;
                 float lit = dot(average, float3(0.299, 0.587, 0.114));
-                float3 tone = lit > 0.5 ? float3(0.10) : float3(0.93);
+                float3 tone = lit > 0.5 ? float3(0.06) : float3(0.93);
                 colour = mix(colour, tone, ink * u.stamp.w);
             }
         }

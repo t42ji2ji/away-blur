@@ -95,6 +95,8 @@ final class Preferences: ObservableObject {
     @Published var showsCat: Bool { didSet { defaults.set(showsCat, forKey: "showsCat") } }
     /// A face's own kaomoji, or "random" for a different one each time.
     @Published var catFace: String { didSet { defaults.set(catFace, forKey: "catFace") } }
+    /// How tall the cat is, as a fraction of the screen.
+    @Published var catSize: Double { didSet { defaults.set(catSize, forKey: "catSize") } }
 
     var onHotkeyChange: (() -> Void)?
     @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
@@ -109,6 +111,7 @@ final class Preferences: ObservableObject {
         cameraRecheck = defaults.object(forKey: "cameraRecheck") as? Double ?? 60
         showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
         catFace = defaults.string(forKey: "catFace") ?? Cat.faces[0].id
+        catSize = defaults.object(forKey: "catSize") as? Double ?? 0.12
         hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B
         hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient

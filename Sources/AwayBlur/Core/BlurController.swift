@@ -303,7 +303,7 @@ final class BlurController {
         guard preferences.showsCat, let stamp else { return nil }
         let size = overlay.layer.drawableSize
         let columns = Double(stamp.width), rows = Double(stamp.height)
-        let cell = max(2, (size.height * 0.22 / rows).rounded(.down))
+        let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
         let span = CGSize(width: columns * cell, height: rows * cell)
         let float = (sin(CACurrentMediaTime() * 2 * .pi / 4.5) * cell * 1.5).rounded()
         let eased = min(max((progress - 0.3) / 0.5, 0), 1)
