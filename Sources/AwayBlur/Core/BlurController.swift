@@ -34,6 +34,18 @@ final class BlurController {
     private var blinkStamp: MTLTexture?
     private var blinkAgainAt: CFTimeInterval = 0
     private var blinkingUntil: CFTimeInterval = 0
+    private var caption: MTLTexture?
+    private var captionText = ""
+    private var captionLines: [String] = []
+    private var captionTurn = 0
+    private var captionSince: CFTimeInterval = 0
+    private var awaySince: CFTimeInterval = 0
+
+    /// A line arrives letter by letter, sits long enough to read twice, then
+    /// is eaten from the right.
+    private static let arriving: CFTimeInterval = 0.65
+    private static let holding: CFTimeInterval = 5.2
+    private static let leaving: CFTimeInterval = 0.45
     private(set) var lastFaceSeen: CFTimeInterval = 0
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
@@ -230,6 +242,10 @@ final class BlurController {
         }
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
+        awaySince = CACurrentMediaTime()
+        captionSince = 0
+        captionTurn = 0
+        captionLines = []
         let face = chosenFace()
         stamp = renderer.makeStamp(face: face)
         blinkStamp = renderer.makeStamp(face: face, blinking: true)
@@ -287,7 +303,7 @@ final class BlurController {
         // Nothing moves while it is held except the cat, and a cat drifting
         // up and down does not need every frame the display can give.
         if phase == .held {
-            if preferences.showsCat {
+            if preferences.showsCat || preferences.showsCaption {
                 link?.preferredFrameRateRange = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
             } else {
                 stopLink()
@@ -313,6 +329,58 @@ final class BlurController {
         blinkAgainAt = now + Double.random(in: 2.4...6.5)
     }
 
+    /// Picks the line and how much of it is showing, once per frame.
+    private func updateCaption() {
+        guard preferences.showsCaption, let renderer else { return }
+        let now = CACurrentMediaTime()
+        let cycle = BlurController.arriving + BlurController.holding + BlurController.leaving
+        if captionSince == 0 || now - captionSince > cycle {
+            if captionSince != 0 { captionTurn += 1 }
+            captionSince = now
+            captionLines = Caption.lines(awayFor: now - awaySince,
+                                         includingWork: preferences.look == .ambient)
+        }
+        guard !captionLines.isEmpty else { return }
+        let line = captionLines[captionTurn % captionLines.count]
+        let elapsed = now - captionSince
+
+        let shown: String
+        if elapsed < BlurController.arriving {
+            shown = Caption.scrambled(line, progress: elapsed / BlurController.arriving,
+                                      seed: Int(now * 14))
+        } else if elapsed < BlurController.arriving + BlurController.holding {
+            shown = line
+        } else {
+            shown = Caption.erased(line, progress: (elapsed - BlurController.arriving
+                                                    - BlurController.holding) / BlurController.leaving)
+        }
+        guard shown != captionText else { return }
+        captionText = shown
+        caption = shown.isEmpty ? nil : renderer.makeCaption(shown)
+    }
+
+    private func captionPlacement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
+        guard preferences.showsCaption, let caption else { return nil }
+        let size = overlay.layer.drawableSize
+        let catCell = (size.height * preferences.catSize / Double(Cat.body.height)).rounded(.down)
+        let cell = max(1, (catCell / 3).rounded())
+        let span = CGSize(width: Double(caption.width) * cell, height: Double(caption.height) * cell)
+        let catBottom = preferences.showsCat
+            ? (size.height + Double(Cat.body.height) * max(2, catCell)) / 2
+            : size.height / 2
+        return BlurRenderer.Stamp(
+            texture: caption,
+            origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
+                            y: (catBottom + catCell * 1.4).rounded()),
+            cell: cell,
+            alpha: ease(progress))
+    }
+
+    private func ease(_ progress: Double) -> Double {
+        let value = min(max((progress - 0.3) / 0.5, 0), 1)
+        return value * value * (3 - 2 * value)
+    }
+
     private func placement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
         guard preferences.showsCat, let stamp else { return nil }
         let shut = CACurrentMediaTime() < blinkingUntil
@@ -322,13 +390,12 @@ final class BlurController {
         let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
         let span = CGSize(width: columns * cell, height: rows * cell)
         let float = (sin(CACurrentMediaTime() * 2 * .pi / 2.6) * cell * 1.5).rounded()
-        let eased = min(max((progress - 0.3) / 0.5, 0), 1)
         return BlurRenderer.Stamp(
             texture: texture,
             origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
                             y: ((size.height - span.height) / 2 + float).rounded()),
             cell: cell,
-            alpha: eased * eased * (3 - 2 * eased))
+            alpha: ease(progress))
     }
 
     private func drawFrame(revealing: Bool = false) {
@@ -337,6 +404,7 @@ final class BlurController {
         let shown = pinned ?? progress
         let look = FrameLook(settings: settings, progress: shown)
         if preferences.showsCat { updateBlink() }
+        updateCaption()
         for overlay in overlays {
             guard let picture = overlay.picture else { continue }
             var arrived: (@Sendable () -> Void)?
@@ -349,7 +417,9 @@ final class BlurController {
             }
             renderer.render(picture: picture, into: overlay.layer, look: look,
                             maxRadius: settings.blurRadius, time: 0,
-                            stamp: placement(on: overlay, progress: shown), onScreen: arrived)
+                            stamp: placement(on: overlay, progress: shown),
+                            caption: captionPlacement(on: overlay, progress: shown),
+                            onScreen: arrived)
         }
     }
 
@@ -368,6 +438,9 @@ final class BlurController {
         overlays.removeAll()
         stamp = nil
         blinkStamp = nil
+        caption = nil
+        captionText = ""
+        captionSince = 0
         phase = .hidden
         progress = 0
         // A preview never outlives its own overlay. Anything that takes the

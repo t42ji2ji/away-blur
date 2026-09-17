@@ -125,7 +125,7 @@ extension BlurRenderer {
 
     /// One pass into a texture we can read back, with no window involved.
     func renderToImage(picture: Picture, size: CGSize, look: FrameLook, maxRadius: Double,
-                       stamp: Stamp? = nil) -> CGImage? {
+                       stamp: Stamp? = nil, caption: Stamp? = nil) -> CGImage? {
         let width = Int(size.width)
         let height = Int(size.height)
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -133,7 +133,8 @@ extension BlurRenderer {
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .shared
         guard let target = makeTexture(descriptor) else { return nil }
-        guard render(picture: picture, into: target, look: look, maxRadius: maxRadius, stamp: stamp) else { return nil }
+        guard render(picture: picture, into: target, look: look, maxRadius: maxRadius,
+                     stamp: stamp, caption: caption) else { return nil }
 
         let bytesPerRow = width * 4
         var bytes = [UInt8](repeating: 0, count: bytesPerRow * height)

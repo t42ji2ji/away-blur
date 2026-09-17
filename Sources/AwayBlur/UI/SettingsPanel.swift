@@ -116,6 +116,8 @@ private struct SettingsView: View {
                     }
                 }
 
+                Toggle("Say what the machine is doing", isOn: $preferences.showsCaption)
+
                 Toggle("Hold it up while I tune", isOn: Binding(
                     get: { controller.isPreviewing },
                     set: { controller.isPreviewing = $0 }

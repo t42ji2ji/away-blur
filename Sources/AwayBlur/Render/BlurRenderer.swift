@@ -47,6 +47,8 @@ final class BlurRenderer {
         var cover: SIMD4<Float>
         var stamp: SIMD4<Float>
         var grid: SIMD4<Float>
+        var caption: SIMD4<Float>
+        var line: SIMD4<Float>
     }
 
     init?() {
@@ -168,7 +170,7 @@ final class BlurRenderer {
     /// The same pass, into a texture rather than a drawable, and waited on.
     @discardableResult
     func render(picture: Picture, into target: MTLTexture, look: FrameLook, maxRadius: Double,
-                stamp: Stamp? = nil) -> Bool {
+                stamp: Stamp? = nil, caption: Stamp? = nil) -> Bool {
         guard let commands = queue.makeCommandBuffer() else { return false }
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = target
@@ -176,7 +178,7 @@ final class BlurRenderer {
         pass.colorAttachments[0].storeAction = .store
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return false }
         encode(into: encoder, picture: picture, size: CGSize(width: target.width, height: target.height),
-               look: look, maxRadius: maxRadius, time: 0, stamp: stamp)
+               look: look, maxRadius: maxRadius, time: 0, stamp: stamp, caption: caption)
         encoder.endEncoding()
         commands.commit()
         commands.waitUntilCompleted()
@@ -184,7 +186,8 @@ final class BlurRenderer {
     }
 
     func render(picture: Picture, into layer: CAMetalLayer, look: FrameLook, maxRadius: Double,
-                time: Double, stamp: Stamp? = nil, onScreen: (@Sendable () -> Void)? = nil) {
+                time: Double, stamp: Stamp? = nil, caption: Stamp? = nil,
+                onScreen: (@Sendable () -> Void)? = nil) {
         guard let drawable = layer.nextDrawable(),
               let commands = queue.makeCommandBuffer() else { return }
         let pass = MTLRenderPassDescriptor()
@@ -194,7 +197,7 @@ final class BlurRenderer {
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
         encode(into: encoder, picture: picture,
                size: CGSize(width: drawable.texture.width, height: drawable.texture.height),
-               look: look, maxRadius: maxRadius, time: time, stamp: stamp)
+               look: look, maxRadius: maxRadius, time: time, stamp: stamp, caption: caption)
         encoder.endEncoding()
         commands.present(drawable)
         if let onScreen {
@@ -204,7 +207,7 @@ final class BlurRenderer {
     }
 
     private func encode(into encoder: MTLRenderCommandEncoder, picture: Picture, size: CGSize,
-                        look: FrameLook, maxRadius: Double, time: Double, stamp: Stamp?) {
+                        look: FrameLook, maxRadius: Double, time: Double, stamp: Stamp?, caption: Stamp?) {
         var uniforms = Uniforms(
             frame: SIMD4(Float(size.width), Float(size.height),
                          Float(maxRadius), Float(picture.texture.mipmapLevelCount - 1)),
@@ -213,11 +216,15 @@ final class BlurRenderer {
             cover: SIMD4(picture.cover.x, picture.cover.y, 0, 0),
             stamp: SIMD4(Float(stamp?.origin.x ?? 0), Float(stamp?.origin.y ?? 0),
                          Float(stamp?.cell ?? 1), Float(stamp?.alpha ?? 0)),
-            grid: SIMD4(Float(stamp?.texture.width ?? 1), Float(stamp?.texture.height ?? 1), 0, 0))
+            grid: SIMD4(Float(stamp?.texture.width ?? 1), Float(stamp?.texture.height ?? 1), 0, 0),
+            caption: SIMD4(Float(caption?.origin.x ?? 0), Float(caption?.origin.y ?? 0),
+                           Float(caption?.cell ?? 1), Float(caption?.alpha ?? 0)),
+            line: SIMD4(Float(caption?.texture.width ?? 1), Float(caption?.texture.height ?? 1), 0, 0))
         encoder.setRenderPipelineState(pipeline)
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 0)
         encoder.setFragmentTexture(picture.texture, index: 0)
         encoder.setFragmentTexture(stamp?.texture ?? picture.texture, index: 1)
+        encoder.setFragmentTexture(caption?.texture ?? picture.texture, index: 2)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
     }
 }

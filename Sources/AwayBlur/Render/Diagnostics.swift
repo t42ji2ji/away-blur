@@ -232,3 +232,56 @@ extension Diagnostics {
         print("wrote \(path)")
     }
 }
+
+extension Diagnostics {
+
+    /// `AwayBlur --lines` — what the line under the cat would say right now.
+    static func showLines() {
+        setvbuf(stdout, nil, _IONBF, 0)
+        print("ambient:")
+        for line in Caption.lines(awayFor: 8 * 60, includingWork: true) { print("  \(line)") }
+        print("privacy:")
+        for line in Caption.lines(awayFor: 8 * 60, includingWork: false) { print("  \(line)") }
+        print("cmux: \(Sessions.open()) panels, waiting: \(Sessions.waiting() ?? "—")")
+    }
+
+    /// `AwayBlur --scene out.png` — the cat and a line, at the size they are
+    /// actually drawn on a screen this size.
+    static func drawScene(to path: String, width: Int = 1512, height: Int = 982,
+                          size: Double = 0.12, text: String = "AWAY 8 MINUTES") {
+        setvbuf(stdout, nil, _IONBF, 0)
+        guard let renderer = BlurRenderer() else { print("no Metal device"); return }
+        guard let flat = Offscreen.flat(width: width, height: height, level: 0.5),
+              let picture = renderer.makePicture(from: flat),
+              let stamp = renderer.makeStamp(face: Cat.faces[0]),
+              let caption = renderer.makeCaption(text) else { print("could not set up"); return }
+
+        let catCell = (Double(height) * size / Double(Cat.body.height)).rounded(.down)
+        let catSpan = CGSize(width: Double(Cat.body.width) * catCell,
+                             height: Double(Cat.body.height) * catCell)
+        let lineCell = max(1, (catCell / 3).rounded())
+        let lineSpan = CGSize(width: Double(caption.width) * lineCell,
+                              height: Double(caption.height) * lineCell)
+        let placed = BlurRenderer.Stamp(
+            texture: stamp,
+            origin: CGPoint(x: ((Double(width) - catSpan.width) / 2).rounded(),
+                            y: ((Double(height) - catSpan.height) / 2).rounded()),
+            cell: catCell, alpha: 1)
+        let line = BlurRenderer.Stamp(
+            texture: caption,
+            origin: CGPoint(x: ((Double(width) - lineSpan.width) / 2).rounded(),
+                            y: ((Double(height) + catSpan.height) / 2 + catCell * 1.4).rounded()),
+            cell: lineCell, alpha: 1)
+
+        guard let image = renderer.renderToImage(picture: picture,
+                                                 size: CGSize(width: width, height: height),
+                                                 look: FrameLook(blur: 0), maxRadius: 240,
+                                                 stamp: placed, caption: line),
+              Offscreen.write(image, to: URL(fileURLWithPath: path)) else {
+            print("could not write \(path)")
+            return
+        }
+        print("cat cell \(Int(catCell))px, line cell \(Int(lineCell))px, line \(caption.width)x\(caption.height) cells")
+        print("wrote \(path)")
+    }
+}

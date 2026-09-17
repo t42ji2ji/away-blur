@@ -153,6 +153,33 @@ every few seconds, never on a metronome.
 Eyes stay narrow and a blank row separates them from the mouth. Widen them and
 the eyes and the ω run together into one zigzag across the whole face.
 
+## The line under it
+
+One line at a time, arriving letter by letter out of scrambled characters,
+sitting long enough to read twice, then eaten from the right. Spaces never
+scramble, so the shape of the line is there before the words are.
+
+What it says is whatever is true of a machine nobody is at: how long you have
+been gone, the time (the overlay covers the menu bar, so it has to give the
+clock back), the battery, whether something you started is still running, and —
+from cmux's own state on disk — whether an agent is waiting on you. Plus one
+line of the cat's own opinion each time round.
+
+The work lines are left out of the privacy look on purpose. A caption naming
+what you are building rather defeats a screen you made unreadable.
+
+The text is a real font rendered small with antialiasing off, which leaves the
+glyphs one bit deep, then blown up by the same whole-number rule as the cat. A
+9pt system mono at 4x looks like it was drawn on the grid rather than set next
+to it.
+
+```sh
+# What it would say right now, for both looks.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --lines
+# The cat and a line at the size they are actually drawn.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --scene ~/Desktop/scene.png
+```
+
 ## Taking the screen now
 
 **⌃⌥⌘B** frosts it without waiting out the idle clock — registered through

@@ -97,6 +97,7 @@ final class Preferences: ObservableObject {
     @Published var catFace: String { didSet { defaults.set(catFace, forKey: "catFace") } }
     /// How tall the cat is, as a fraction of the screen.
     @Published var catSize: Double { didSet { defaults.set(catSize, forKey: "catSize") } }
+    @Published var showsCaption: Bool { didSet { defaults.set(showsCaption, forKey: "showsCaption") } }
 
     var onHotkeyChange: (() -> Void)?
     @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
@@ -112,6 +113,7 @@ final class Preferences: ObservableObject {
         showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
         catFace = defaults.string(forKey: "catFace") ?? Cat.faces[0].id
         catSize = defaults.object(forKey: "catSize") as? Double ?? 0.12
+        showsCaption = defaults.object(forKey: "showsCaption") as? Bool ?? true
         hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B
         hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient

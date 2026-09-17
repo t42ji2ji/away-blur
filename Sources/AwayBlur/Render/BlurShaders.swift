@@ -18,7 +18,21 @@ enum BlurShaders {
         float4 cover;   // fraction of the texture the screen occupies
         float4 stamp;   // origin (px), cell size (px), alpha
         float4 grid;    // columns, rows
+        float4 caption; // origin (px), cell size (px), alpha
+        float4 line;    // columns, rows
     };
+
+    // A one-bit stamp laid on the picture: whole pixels per cell, whole pixels
+    // of position, nearest sampling. All three, or it goes soft.
+    static inline float3 lay(float3 colour, float2 position, float4 place, float2 grid,
+                             texture2d<float> art, sampler blocky, float3 tone) {
+        if (place.w <= 0.001) { return colour; }
+        float2 span = grid * place.z;
+        float2 local = position - place.xy;
+        if (any(local < 0.0) || any(local >= span)) { return colour; }
+        float ink = art.sample(blocky, local / span).r;
+        return mix(colour, tone, ink * place.w);
+    }
 
     vertex float4 fullScreenVertex(uint id [[vertex_id]]) {
         const float2 corners[3] = { float2(-1.0, -3.0), float2(-1.0, 1.0), float2(3.0, 1.0) };
@@ -32,7 +46,8 @@ enum BlurShaders {
     fragment float4 blurFragment(float4 position [[position]],
                                  constant Uniforms &u [[buffer(0)]],
                                  texture2d<float> picture [[texture(0)]],
-                                 texture2d<float> stamp [[texture(1)]]) {
+                                 texture2d<float> stamp [[texture(1)]],
+                                 texture2d<float> caption [[texture(2)]]) {
         constexpr sampler smooth(filter::linear, mip_filter::linear, address::clamp_to_edge);
         // Nearest, always. A pixel is a square and it stays a square.
         constexpr sampler blocky(filter::nearest, address::clamp_to_edge);
@@ -79,23 +94,15 @@ enum BlurShaders {
         // not light, so the fall does not need a curve on top.
         colour *= 1.0 - dim;
 
-        // The cat. Drawn at a whole number of pixels per cell, placed on a
-        // whole pixel, sampled nearest: those three together are the entire
-        // trick to pixel art that does not go soft when it is made bigger.
-        if (u.stamp.w > 0.001) {
-            float2 cell = float2(u.stamp.z);
-            float2 span = u.grid.xy * cell;
-            float2 local = position.xy - u.stamp.xy;
-            if (all(local >= 0.0) && all(local < span)) {
-                float ink = stamp.sample(blocky, local / span).r;
-                // Dark on a light screen, light on a dark one, decided once
-                // from the picture's own average rather than per pixel, so the
-                // shape never breaks up over a busy background.
-                float3 average = picture.sample(smooth, cover * 0.5, level(maxLevel)).rgb;
-                float lit = dot(average, float3(0.299, 0.587, 0.114));
-                float3 tone = lit > 0.5 ? float3(0.06) : float3(0.93);
-                colour = mix(colour, tone, ink * u.stamp.w);
-            }
+        // The cat and its line. Dark on a light screen, light on a dark one,
+        // decided once from the picture's own average rather than per pixel,
+        // so neither breaks up over a busy background.
+        if (u.stamp.w > 0.001 || u.caption.w > 0.001) {
+            float3 average = picture.sample(smooth, cover * 0.5, level(maxLevel)).rgb;
+            float lit = dot(average, float3(0.299, 0.587, 0.114));
+            float3 tone = lit > 0.5 ? float3(0.06) : float3(0.93);
+            colour = lay(colour, position.xy, u.stamp, u.grid.xy, stamp, blocky, tone);
+            colour = lay(colour, position.xy, u.caption, u.line.xy, caption, blocky, tone);
         }
 
         // Grain, so a wide dark gradient does not band on an 8-bit panel.
