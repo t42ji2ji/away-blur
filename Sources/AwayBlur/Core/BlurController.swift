@@ -29,6 +29,8 @@ final class BlurController {
     /// few hundred ScreenCaptureKit calls a minute.
     private var retryAfter: CFTimeInterval = 0
     private var permission = (checked: CFTimeInterval(0), granted: false)
+    private let camera = FaceCheck()
+    private(set) var lastFaceSeen: CFTimeInterval = 0
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
 
@@ -115,7 +117,7 @@ final class BlurController {
         guard hasPermission, CACurrentMediaTime() >= retryAfter else { return false }
         if isPreviewing { return true }
         guard preferences.isEnabled, !Presence.displayHeldAwake() else { return false }
-        return idle >= preferences.current.idleDelay
+        return idle >= preferences.idleDelay
     }
 
     private func decide() {
@@ -154,6 +156,21 @@ final class BlurController {
         guard !screens.isEmpty else { isCapturing = false; return }
 
         Task { [weak self] in
+            // The idle clock has run out; before taking the screen, see whether
+            // anyone is actually sitting there. A face only ever holds the blur
+            // back — never causes it — so every failure here reads as nobody.
+            if let self, self.preferences.usesCamera, !self.isPreviewing,
+               CACurrentMediaTime() - self.lastFaceSeen > self.preferences.cameraRecheck {
+                let seen = await self.camera.look()
+                self.lastFaceSeen = seen ? CACurrentMediaTime() : 0
+                if seen {
+                    self.retryAfter = CACurrentMediaTime() + self.preferences.cameraRecheck
+                    self.isCapturing = false
+                    FileLog.write("camera saw a face; not asking again for \(Int(self.preferences.cameraRecheck))s")
+                    return
+                }
+                FileLog.write("camera saw nobody")
+            }
             var pictures: [CGDirectDisplayID: BlurRenderer.Picture] = [:]
             for (_, id) in screens {
                 guard let image = await ScreenSnapshot.capture(display: id) else { continue }

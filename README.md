@@ -12,6 +12,19 @@ is the whole trick: anything playing video or running a call takes one of those
 out, which is exactly the case where idle seconds is wrong — you are sitting
 right there, watching, and the keyboard has not moved in ten minutes.
 
+What that misses is reading and thinking, so there is a second veto behind it.
+Once the idle clock has run out, the front camera is opened for a moment and
+Vision is asked whether there is a face in frame; if there is, the screen is
+left alone and the camera is not asked again for a minute. It is off until you
+turn it on, it can only hold the blur back and never cause it, and every failure
+— no camera, no permission, the lid shut — counts as nobody. The session is
+closed the instant it has an answer, so the green light is a blink rather than
+a state; keeping it open would be a lie about what the app is doing.
+
+Vision finds faces, not open eyes. Nothing public can tell you reliably whether
+someone is looking at the screen, so the question it actually answers is whether
+there is still a person in front of the Mac.
+
 **The picture.** One ScreenCaptureKit still per display, taken at the moment you
 go, uploaded to a mipmapped texture. No live stream: the picture is frozen
 anyway, so paying 30 frames a second for it would be waste.
@@ -71,7 +84,8 @@ Nothing is readable.
 **Ambient** — 55px blur, barely dimmed, washed 35% towards the picture's own
 average colour, 1.6s in and 0.8s out. You can still tell what is under there.
 
-Switch in the menu bar. Each look keeps its own numbers.
+Switch in the menu bar. Each look keeps its own numbers, except the idle delay
+and the camera, which answer whether anyone is there and so belong to neither.
 
 ## Build
 
@@ -91,6 +105,10 @@ tail -f ~/Library/Logs/AwayBlur.log
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --edges
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --measure
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --shot ~/Desktop
+
+# Opens the camera once and says what it saw, with the frame count, so "nobody
+# there" can be told apart from "the camera never delivered a frame".
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --camera
 ```
 
 The build is signed with a self-signed `Away Blur Dev` identity from the login

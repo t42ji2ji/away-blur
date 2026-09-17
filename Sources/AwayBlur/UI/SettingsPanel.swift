@@ -34,7 +34,16 @@ private struct SettingsView: View {
             Group {
                 slider("Fade in", $preferences.current.fadeIn, 0.1...3, "%.2f s")
                 slider("Fade out", $preferences.current.fadeOut, 0.05...2, "%.2f s")
-                slider("Idle before blur", $preferences.current.idleDelay, 5...600, "%.0f s")
+            }
+
+            Divider()
+
+            slider("Idle before blur", $preferences.idleDelay, 5...600, "%.0f s")
+
+            Toggle("Look through the camera before blurring", isOn: $preferences.usesCamera)
+                .toggleStyle(.switch)
+            if preferences.usesCamera {
+                slider("Face holds it for", $preferences.cameraRecheck, 15...300, "%.0f s")
             }
 
             Divider()

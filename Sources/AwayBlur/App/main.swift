@@ -11,6 +11,11 @@ if let index = CommandLine.arguments.firstIndex(of: "--compare"), CommandLine.ar
     exit(0)
 }
 
+if CommandLine.arguments.contains("--camera") {
+    Diagnostics.lookThroughCamera()
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--edges") {
     Diagnostics.measureEdges()
     exit(0)

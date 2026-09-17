@@ -22,6 +22,8 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSCameraUsageDescription</key>
+    <string>Away Blur looks for a face before it frosts the screen, so that reading or thinking does not count as having left. It looks only when the keyboard has already been idle, and nothing is recorded or sent anywhere.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

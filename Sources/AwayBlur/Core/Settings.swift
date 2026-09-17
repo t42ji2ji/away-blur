@@ -24,19 +24,17 @@ struct LookSettings: Codable, Equatable {
     var grain: Double
     var fadeIn: Double
     var fadeOut: Double
-    /// Seconds of no keyboard or mouse before the screen goes.
-    var idleDelay: Double
 
     /// Unreadable, quickly, and gone the moment a hand comes back.
     static let privacyDefaults = LookSettings(
         blurRadius: 110, dim: 0.45, wash: 0, grain: 0.6,
-        fadeIn: 0.45, fadeOut: 0.14, idleDelay: 45
+        fadeIn: 0.45, fadeOut: 0.14
     )
 
     /// Frosted rather than hidden: you can still tell what is under there.
     static let ambientDefaults = LookSettings(
         blurRadius: 55, dim: 0.12, wash: 0.35, grain: 0.8,
-        fadeIn: 1.6, fadeOut: 0.8, idleDelay: 90
+        fadeIn: 1.6, fadeOut: 0.8
     )
 
     static func defaults(for look: Look) -> LookSettings {
@@ -71,7 +69,16 @@ struct FrameLook {
 @MainActor
 final class Preferences: ObservableObject {
     @Published var isEnabled: Bool { didSet { store(isEnabled, "enabled") } }
+    /// Seconds of no keyboard or mouse before the screen goes. One number for
+    /// both looks: it answers whether anyone is there, which has nothing to do
+    /// with what the screen turns into afterwards.
+    @Published var idleDelay: Double { didSet { defaults.set(idleDelay, forKey: "idleDelay") } }
     @Published var look: Look { didSet { store(look.rawValue, "look") } }
+    /// Look through the camera before blurring. Off unless asked for: it costs
+    /// a camera permission and the green light every time it checks.
+    @Published var usesCamera: Bool { didSet { defaults.set(usesCamera, forKey: "usesCamera") } }
+    /// How long a face holds the screen before the camera is asked again.
+    @Published var cameraRecheck: Double { didSet { defaults.set(cameraRecheck, forKey: "cameraRecheck") } }
     @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
     @Published var ambient: LookSettings { didSet { store(ambient, "ambient") } }
 
@@ -79,6 +86,9 @@ final class Preferences: ObservableObject {
 
     init() {
         isEnabled = defaults.object(forKey: "enabled") as? Bool ?? true
+        idleDelay = defaults.object(forKey: "idleDelay") as? Double ?? 90
+        usesCamera = defaults.object(forKey: "usesCamera") as? Bool ?? false
+        cameraRecheck = defaults.object(forKey: "cameraRecheck") as? Double ?? 60
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient
         privacy = Preferences.read("privacy", defaults) ?? .privacyDefaults
         ambient = Preferences.read("ambient", defaults) ?? .ambientDefaults

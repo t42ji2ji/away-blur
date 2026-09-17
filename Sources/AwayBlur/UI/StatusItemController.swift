@@ -59,6 +59,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        let camera = NSMenuItem(title: "Check the camera before blurring",
+                                action: #selector(toggleCamera), keyEquivalent: "")
+        camera.target = self
+        camera.state = preferences.usesCamera ? .on : .off
+        menu.addItem(camera)
+        if preferences.usesCamera, FaceCheck.isDenied {
+            let denied = NSMenuItem(title: "  Camera access is off — open System Settings",
+                                    action: #selector(openCameraSettings), keyEquivalent: "")
+            denied.target = self
+            menu.addItem(denied)
+        }
+
+        menu.addItem(.separator())
         let preview = NSMenuItem(title: "Preview the look now", action: #selector(togglePreview), keyEquivalent: "p")
         preview.target = self
         preview.state = controller.isPreviewing ? .on : .off
@@ -109,6 +122,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func clearNow() {
         controller.clear()
+    }
+
+    @objc private func toggleCamera() {
+        if preferences.usesCamera {
+            preferences.usesCamera = false
+            return
+        }
+        Task {
+            let granted = FaceCheck.isAuthorized ? true : await FaceCheck.requestAccess()
+            preferences.usesCamera = granted
+            if !granted { openCameraSettings() }
+        }
+    }
+
+    @objc private func openCameraSettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func openPrivacySettings() {
