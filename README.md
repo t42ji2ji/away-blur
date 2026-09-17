@@ -135,7 +135,12 @@ Three rules keep it sharp, and all three have to hold at once:
    drifting — the float is rounded every frame.
 3. Nearest sampling. A pixel is a square and it stays a square.
 
-It shakes when a cmux session starts waiting on you: a random offset decaying
+It never quite sits still: a boil of a pixel or so, rerolled three times a
+second. The rate is the whole of it — every frame is noise, nine times a second
+is a buzz, three reads as a drawing that will not settle. `Its jitter` in the
+panel sets how far, and zero holds it perfectly still.
+
+On top of that it shakes when a cmux session starts waiting on you: a random offset decaying
 on the square of the time left, so it starts hard and settles instead of
 rattling evenly to the end, and rounded to whole screen pixels per display
 because a fraction of a pixel would soften the art for as long as it lasted.

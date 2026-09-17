@@ -52,6 +52,13 @@ final class BlurController {
     private var shakeOffset = CGPoint.zero
     private var twitchAt: CFTimeInterval = 0
 
+    /// The constant boil, rerolled three times a second. Every frame is noise,
+    /// nine times a second is a buzz; three is a drawing that will not quite
+    /// sit still, which is the thing worth having.
+    private var boilOffset = CGPoint.zero
+    private var boiledAt: CFTimeInterval = 0
+    private static let boilInterval: CFTimeInterval = 0.33
+
     private func shake(_ cells: Double, over duration: CFTimeInterval) {
         shakeCells = cells
         shakeOver = duration
@@ -60,9 +67,16 @@ final class BlurController {
 
     private func updateShake() {
         let now = CACurrentMediaTime()
+        if now - boiledAt >= BlurController.boilInterval {
+            boiledAt = now
+            let amount = preferences.catJitter
+            boilOffset = amount <= 0 ? .zero
+                : CGPoint(x: Double.random(in: -amount...amount),
+                          y: Double.random(in: -amount...amount))
+        }
         if now >= twitchAt {
-            if twitchAt != 0 { shake(0.7, over: 0.28) }
-            twitchAt = now + Double.random(in: 18...45)
+            if twitchAt != 0 { shake(1.6, over: 0.35) }
+            twitchAt = now + Double.random(in: 12...30)
         }
         guard now < shakeUntil else {
             shakeOffset = .zero
@@ -432,8 +446,8 @@ final class BlurController {
         let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
         let span = CGSize(width: columns * cell, height: rows * cell)
         let float = (sin(CACurrentMediaTime() * 2 * .pi / 2.6) * cell * 1.5).rounded()
-        let shakeX = (shakeOffset.x * cell).rounded()
-        let shakeY = (shakeOffset.y * cell).rounded()
+        let shakeX = ((shakeOffset.x + boilOffset.x) * cell).rounded()
+        let shakeY = ((shakeOffset.y + boilOffset.y) * cell).rounded()
         return BlurRenderer.Stamp(
             texture: texture,
             origin: CGPoint(x: ((size.width - span.width) / 2 + shakeX).rounded(),
