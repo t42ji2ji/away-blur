@@ -270,7 +270,7 @@ extension Diagnostics {
         let line = BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((Double(width) - lineSpan.width) / 2).rounded(),
-                            y: ((Double(height) + catSpan.height) / 2 + catCell * 2.6).rounded()),
+                            y: ((Double(height) + catSpan.height) / 2 + catCell * 5.0).rounded()),
             cell: lineCell, alpha: 1)
 
         guard let image = renderer.renderToImage(picture: picture,
