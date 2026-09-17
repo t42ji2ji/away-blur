@@ -51,8 +51,17 @@ half the blur radius as it goes out of focus — 31px at radius 64, plainly
 visible. `--measure` reports it.
 
 **The window.** Borderless, at `CGShieldingWindowLevel()`, joins all spaces, never
-takes focus or clicks. It goes up already holding a sharp copy of the screen, so
-there is no seam when it appears.
+takes focus or clicks. It goes up at alpha zero holding a sharp copy of the
+screen, and only fades in — over 80ms, across two pictures that are the same
+picture — once that first frame is actually scheduled. The ramp starts after
+that. Taking the screen over in one step instead is visible however exact the
+copy is, and the layer's own first `frame` assignment animates from nothing,
+which reads as the whole screen scaling into place.
+
+Going away is not reversible. The fade-out runs to the end whatever happens
+during it: with a 0.8s fade, standing still for half a second in the middle is
+enough to satisfy the idle rule again, and the screen climbs back up under a
+hand that is already on the keyboard.
 
 ## The two looks
 

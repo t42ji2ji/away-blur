@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import CoreGraphics
 import Foundation
 
@@ -85,9 +86,13 @@ extension Diagnostics {
         }
         let done = DispatchSemaphore(value: 0)
         var captured: CGImage?
+        var every: [(CGDirectDisplayID, CGImage)] = []
         Task { @MainActor in
-            guard let id = NSScreen.main?.displayID else { done.signal(); return }
-            captured = await ScreenSnapshot.capture(display: id)
+            for screen in NSScreen.screens {
+                guard let id = screen.displayID, let image = await ScreenSnapshot.capture(display: id) else { continue }
+                every.append((id, image))
+            }
+            captured = every.first?.1
             done.signal()
         }
         while done.wait(timeout: .now()) == .timedOut {
@@ -103,6 +108,10 @@ extension Diagnostics {
         }
         let size = CGSize(width: screen.width, height: screen.height)
         print("screen \(screen.width)x\(screen.height), texture \(picture.texture.width)x\(picture.texture.height)")
+        for (id, image) in every {
+            _ = Offscreen.write(image, to: directory.appendingPathComponent("capture-\(id).png"))
+            print("wrote capture-\(id).png (\(image.width)x\(image.height))")
+        }
         _ = Offscreen.write(screen, to: directory.appendingPathComponent("capture.png"))
 
         for radius in radii {
@@ -115,5 +124,22 @@ extension Diagnostics {
             }
             print("wrote \(name)")
         }
+    }
+}
+
+extension Diagnostics {
+
+    /// `AwayBlur --compare a.png b.png` — how far apart two frames are.
+    static func compare(_ first: String, _ second: String) {
+        setvbuf(stdout, nil, _IONBF, 0)
+        func load(_ path: String) -> CGImage? {
+            guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil) else { return nil }
+            return CGImageSourceCreateImageAtIndex(source, 0, nil)
+        }
+        guard let a = load(first), let b = load(second) else {
+            print("could not read both images")
+            return
+        }
+        print("\(a.width)x\(a.height) vs \(b.width)x\(b.height): \(Offscreen.difference(a, b))")
     }
 }

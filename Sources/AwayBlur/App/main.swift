@@ -6,6 +6,11 @@ if let index = CommandLine.arguments.firstIndex(of: "--shot") {
     exit(0)
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--compare"), CommandLine.arguments.count > index + 2 {
+    Diagnostics.compare(CommandLine.arguments[index + 1], CommandLine.arguments[index + 2])
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--edges") {
     Diagnostics.measureEdges()
     exit(0)

@@ -28,8 +28,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls where url.scheme == "awayblur" {
             let action = url.lastPathComponent
             switch (url.host, action) {
-            case ("preview", "on"): controller.isPreviewing = true
-            case ("preview", "off"): controller.isPreviewing = false
+            case ("preview", "sharp"):
+                controller.pinned = 0
+                controller.isPreviewing = true
+            case ("preview", "on"):
+                controller.pinned = nil
+                controller.isPreviewing = true
+            case ("preview", "off"):
+                controller.pinned = nil
+                controller.isPreviewing = false
             case ("preview", "toggle"): controller.isPreviewing.toggle()
             case ("settings", _): settings.show()
             default: break

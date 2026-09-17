@@ -66,6 +66,9 @@ final class BlurRenderer {
         layer.isOpaque = false
         layer.contentsScale = scale
         layer.colorspace = CGColorSpace(name: BlurRenderer.colourSpace)
+        // No implicit animation on anything, ever.
+        layer.actions = ["bounds": NSNull(), "position": NSNull(),
+                         "frame": NSNull(), "contents": NSNull(), "drawableSize": NSNull()]
         return layer
     }
 
@@ -167,7 +170,8 @@ final class BlurRenderer {
         return true
     }
 
-    func render(picture: Picture, into layer: CAMetalLayer, look: FrameLook, maxRadius: Double, time: Double) {
+    func render(picture: Picture, into layer: CAMetalLayer, look: FrameLook, maxRadius: Double,
+                time: Double, onScreen: (@Sendable () -> Void)? = nil) {
         guard let drawable = layer.nextDrawable(),
               let commands = queue.makeCommandBuffer() else { return }
         let pass = MTLRenderPassDescriptor()
@@ -180,6 +184,9 @@ final class BlurRenderer {
                look: look, maxRadius: maxRadius, time: time)
         encoder.endEncoding()
         commands.present(drawable)
+        if let onScreen {
+            commands.addScheduledHandler { _ in onScreen() }
+        }
         commands.commit()
     }
 

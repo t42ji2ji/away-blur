@@ -1,7 +1,7 @@
 #!/bin/sh
 # Drives a running Away Blur from the shell, for tuning.
 case "$1" in
-    on|off|toggle) open "awayblur://preview/$1" ;;
+    on|off|toggle|sharp) open "awayblur://preview/$1" ;;
     settings)      open "awayblur://settings/show" ;;
-    *) echo "usage: blurctl on|off|toggle|settings" ; exit 1 ;;
+    *) echo "usage: blurctl on|off|toggle|sharp|settings" ; exit 1 ;;
 esac

@@ -53,6 +53,11 @@ final class BlurController {
 
     private var previewStarted: CFTimeInterval = 0
 
+    /// Holds the ramp at one value, for looking at a single frame of it.
+    var pinned: Double? {
+        didSet { if isShowing { drawFrame() } }
+    }
+
     private var withinPreviewGrace: Bool {
         CACurrentMediaTime() - previewStarted <= BlurController.previewGrace
     }
@@ -119,13 +124,15 @@ final class BlurController {
         if isPreviewing, !isTuning(), !withinPreviewGrace, Presence.idleSeconds() < 0.4 {
             isPreviewing = false
         }
+        // Going away is not reversible. Whatever started the fade — a hand on
+        // the keyboard, the menu, a preview ending — has already been decided,
+        // and standing still for half a second in the middle of a long fade
+        // should not drag the screen back up.
+        guard phase != .falling else { return }
         let wanted = shouldShow()
         switch (wanted, phase) {
         case (true, .hidden):
             beginShowing()
-        case (true, .falling):
-            phase = .rising
-            startLink()
         case (false, .rising), (false, .held):
             phase = .falling
             startLink()
@@ -150,6 +157,10 @@ final class BlurController {
             var pictures: [CGDirectDisplayID: BlurRenderer.Picture] = [:]
             for (_, id) in screens {
                 guard let image = await ScreenSnapshot.capture(display: id) else { continue }
+                if UserDefaults.standard.bool(forKey: "dumpCaptures") {
+                    _ = Offscreen.write(image, to: FileManager.default.homeDirectoryForCurrentUser
+                        .appendingPathComponent("Library/Logs/AwayBlur-frozen-\(id).png"))
+                }
                 let made: BlurRenderer.Picture? = await Task.detached(priority: .userInitiated) {
                     renderer.makePicture(from: image)
                 }.value
@@ -178,14 +189,17 @@ final class BlurController {
             overlay.picture = picture
             overlays.append(overlay)
         }
+        for overlay in overlays {
+            FileLog.write("display \(overlay.displayID): window \(overlay.window.frame.size), layer bounds \(overlay.layer.bounds.size), drawable \(overlay.layer.drawableSize), scale \(overlay.layer.contentsScale)")
+        }
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
         progress = 0
-        phase = .rising
-        drawFrame()
+        // Held, not rising: the ramp only starts once the sharp copy is up.
+        phase = .held
+        drawFrame(revealing: true)
         overlays.forEach { $0.show() }
         schedulePoll(interval: 0.06)
-        startLink()
     }
 
     // MARK: - The ramp
@@ -222,6 +236,7 @@ final class BlurController {
         case .hidden, .held:
             break
         }
+        if pinned != nil, phase == .rising { phase = .held }
 
         drawFrame()
 
@@ -229,15 +244,32 @@ final class BlurController {
         if phase == .held { stopLink() }
     }
 
-    private func drawFrame() {
+    private func drawFrame(revealing: Bool = false) {
         guard let renderer else { return }
         let settings = preferences.current
-        let look = FrameLook(settings: settings, progress: progress)
+        let look = FrameLook(settings: settings, progress: pinned ?? progress)
         for overlay in overlays {
             guard let picture = overlay.picture else { continue }
+            var arrived: (@Sendable () -> Void)?
+            if revealing {
+                arrived = { [weak self] in
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated { self?.revealed() }
+                    }
+                }
+            }
             renderer.render(picture: picture, into: overlay.layer, look: look,
-                            maxRadius: settings.blurRadius, time: 0)
+                            maxRadius: settings.blurRadius, time: 0, onScreen: arrived)
         }
+    }
+
+    /// The first frame is on screen. Fade the overlay in, then start the ramp.
+    private func revealed() {
+        guard phase == .held, progress == 0 else { return }
+        overlays.forEach { $0.reveal() }
+        guard pinned == nil else { return }
+        phase = .rising
+        startLink()
     }
 
     private func finishHiding() {

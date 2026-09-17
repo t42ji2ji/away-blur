@@ -22,7 +22,14 @@ private final class MetalHostView: NSView {
 
     override func layout() {
         super.layout()
+        // Setting a layer's frame is an animatable change, and the first one
+        // runs from a zero-sized layer to a full-screen one over a quarter of
+        // a second: the overlay arrives and the whole picture scales up into
+        // place. Nothing here should ever animate.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         layer?.frame = bounds
+        CATransaction.commit()
     }
 }
 
@@ -57,10 +64,26 @@ final class Overlay {
         window.level = Overlay.awayLevel
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         window.setFrame(screen.frame, display: false)
+        // Nothing is drawn yet, and an empty overlay must not be visible even
+        // for one frame.
+        window.alphaValue = 0
+        view.layoutSubtreeIfNeeded()
     }
 
     func show() {
         window.orderFrontRegardless()
+    }
+
+    /// Fades in the sharp copy over the real screen. The two are the same
+    /// picture, so nothing is visible in the crossing — it only hides whatever
+    /// discontinuity there is in the instant the overlay takes over.
+    func reveal(over duration: TimeInterval = 0.08) {
+        guard window.alphaValue < 1 else { return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1
+        }
     }
 
     func close() {
