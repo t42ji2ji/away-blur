@@ -8,6 +8,8 @@
     <string>Away Blur</string>
     <key>CFBundleExecutable</key>
     <string>AwayBlur</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.dora.away-blur</string>
     <key>CFBundlePackageType</key>

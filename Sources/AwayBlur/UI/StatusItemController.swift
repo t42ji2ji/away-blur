@@ -14,7 +14,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.settings = settings
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
-        item.button?.image = StatusItemController.symbol()
+        item.button?.image = Icon.menuBar() ?? StatusItemController.symbol()
         item.button?.image?.isTemplate = true
         let menu = NSMenu()
         menu.delegate = self

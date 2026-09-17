@@ -11,6 +11,12 @@ if let index = CommandLine.arguments.firstIndex(of: "--compare"), CommandLine.ar
     exit(0)
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--iconset") {
+    let path = CommandLine.arguments.count > index + 1 ? CommandLine.arguments[index + 1] : "AppIcon.iconset"
+    Diagnostics.writeIconset(to: path)
+    exit(0)
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--font") {
     let path = CommandLine.arguments.count > index + 1 ? CommandLine.arguments[index + 1] : "font.png"
     Diagnostics.drawFont(to: path)
