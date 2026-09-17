@@ -175,9 +175,10 @@ scramble, so the shape of the line is there before the words are.
 
 What it says is whatever is true of a machine nobody is at: how long you have
 been gone, the time (the overlay covers the menu bar, so it has to give the
-clock back), the battery, whether something you started is still running, and —
-from cmux's own state on disk — whether an agent is waiting on you. Plus one
-line of the cat's own opinion each time round.
+clock back), the battery, how much of the CPU and the memory is in use, whether
+something you started is still running, and — from cmux's own state on disk —
+whether an agent is waiting on you. Plus one line of the cat's own opinion each
+time round.
 
 The work lines are left out of the privacy look on purpose. A caption naming
 what you are building rather defeats a screen you made unreadable.

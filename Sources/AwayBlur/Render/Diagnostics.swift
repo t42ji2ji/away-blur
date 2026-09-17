@@ -238,8 +238,13 @@ extension Diagnostics {
     /// `AwayBlur --lines` — what the line under the cat would say right now.
     static func showLines() {
         setvbuf(stdout, nil, _IONBF, 0)
+        // The CPU line is measured between calls, so the first one only starts
+        // the clock and each block wants a second of its own to measure over.
+        _ = Caption.lines(awayFor: 8 * 60, includingWork: true)
+        Thread.sleep(forTimeInterval: 1)
         print("ambient:")
         for line in Caption.lines(awayFor: 8 * 60, includingWork: true) { print("  \(line)") }
+        Thread.sleep(forTimeInterval: 1)
         print("privacy:")
         for line in Caption.lines(awayFor: 8 * 60, includingWork: false) { print("  \(line)") }
         print("cmux: \(Sessions.open()) panels, waiting: \(Sessions.waiting() ?? "—")")

@@ -13,6 +13,8 @@ enum Caption {
     static func lines(awayFor seconds: TimeInterval, includingWork: Bool) -> [String] {
         var lines = [away(seconds), clock()]
         if let power = battery() { lines.append(power) }
+        if let busyness = load() { lines.append(busyness) }
+        if let filled = memory() { lines.append(filled) }
         if includingWork {
             if let waiting = Sessions.waiting() { lines.append(waiting) }
             if let busy = busy() { lines.append(busy) }
@@ -66,6 +68,58 @@ enum Caption {
             return charging ? "CHARGING \(percent)%" : "BATTERY \(percent)%"
         }
         return nil
+    }
+
+    /// How much of the machine is busy, measured over the gap since the last
+    /// time the lines were built — about six seconds. A rate, not a reading:
+    /// the ticks are cumulative, so there is nothing to say until there are
+    /// two samples to subtract, and the first rotation of a run leaves the
+    /// line out. A gap far longer than a rotation means the blur was down in
+    /// between, and an average across that is not what anyone is asking.
+    private static var lastTicks: (busy: Double, total: Double, at: TimeInterval)?
+
+    private static func load() -> String? {
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info_data_t>.size
+                                           / MemoryLayout<integer_t>.size)
+        var info = host_cpu_load_info()
+        let read = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
+            }
+        }
+        guard read == KERN_SUCCESS else { return nil }
+        let ticks = info.cpu_ticks
+        let busy = Double(ticks.0) + Double(ticks.1) + Double(ticks.3)
+        let total = busy + Double(ticks.2)
+        let now = Date().timeIntervalSinceReferenceDate
+        defer { lastTicks = (busy, total, now) }
+        guard let last = lastTicks, (0.5...60).contains(now - last.at),
+              total - last.total > 0 else { return nil }
+        let percent = (busy - last.busy) / (total - last.total) * 100
+        return "CPU \(Int(min(max(percent, 0), 100).rounded()))%"
+    }
+
+    /// What Activity Monitor calls memory used: everything an app has asked
+    /// for and not marked throwaway, plus wired and compressed. Free pages are
+    /// not the complement of that — most of what is not used is cached file
+    /// and would read as pressure the machine is not under.
+    private static func memory() -> String? {
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size
+                                           / MemoryLayout<integer_t>.size)
+        var stats = vm_statistics64_data_t()
+        let read = withUnsafeMutablePointer(to: &stats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        var page: vm_size_t = 0
+        guard read == KERN_SUCCESS,
+              host_page_size(mach_host_self(), &page) == KERN_SUCCESS else { return nil }
+        let total = Double(ProcessInfo.processInfo.physicalMemory)
+        guard total > 0 else { return nil }
+        let used = (Double(stats.internal_page_count) - Double(stats.purgeable_count)
+                    + Double(stats.wire_count) + Double(stats.compressor_page_count)) * Double(page)
+        return "MEMORY \(Int((used / total * 100).rounded()))%"
     }
 
     /// Something is keeping the machine itself awake — a build, an export, a
