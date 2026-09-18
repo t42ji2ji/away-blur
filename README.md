@@ -3,6 +3,9 @@
 Frosts the screen when you stop using the Mac, and clears it the moment a hand
 comes back. Menu bar app, two looks, everything tunable while you watch it.
 
+Download it from [awayblur.dorara.app](https://awayblur.dorara.app) or the
+[latest release](https://github.com/t42ji2ji/away-blur/releases/latest).
+
 ## How it works
 
 **Deciding you are gone.** Seconds since the last keyboard or mouse event
@@ -130,6 +133,15 @@ The release build is signed with the Developer ID and the hardened runtime,
 which refuses the camera unless `Resources/AwayBlur.entitlements` asks for it.
 Notarization reads a keychain profile, saved once with
 `xcrun notarytool store-credentials away-blur`.
+
+The site is `site/`, plain files with no build step, on Cloudflare Pages. It
+draws the app's own cat and letters: `Scripts/make-site-art.py` copies them
+out of `CatFrames.swift` and `PixelFont.swift` into `site/art.js`, so run it
+after the art or the font changes.
+
+```sh
+npx wrangler pages deploy site --project-name away-blur --branch main
+```
 
 ## The cat
 

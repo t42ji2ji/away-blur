@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Away Blur</title>
+<meta name="description" content="A Mac menu bar app that frosts the screen when you stop using the Mac, and clears it the moment a hand comes back.">
+<meta property="og:title" content="Away Blur">
+<meta property="og:description" content="Frosts the screen when you stop using the Mac, and clears it the moment a hand comes back.">
+<meta property="og:image" content="https://awayblur.dorara.app/icon.png">
+<meta property="og:url" content="https://awayblur.dorara.app/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="main.js"></script>
+</head>
+<body>
+
+<header class="screen" id="top">
+  <div class="field" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <nav class="menubar">
+    <a class="app-name" href="#top">Away Blur</a>
+    <span class="menu-right">
+      <a href="#install">Install</a>
+      <a href="https://github.com/t42ji2ji/away-blur">GitHub</a>
+      <canvas class="menucat" aria-hidden="true"></canvas>
+    </span>
+  </nav>
+  <div class="pitch">
+    <h1 class="px" data-fit>Away Blur</h1>
+    <p class="lead">Frosts the screen when you stop using the Mac, and clears it the moment a hand comes back.</p>
+    <div class="get">
+      <a class="download" href="https://github.com/t42ji2ji/away-blur/releases/latest/download/Away-Blur.dmg"><span class="px" data-cell="3">Download</span></a>
+      <p class="meta">macOS 14 or later<br>Apple silicon and Intel</p>
+    </div>
+  </div>
+  <p class="hint">Keep still for five seconds.</p>
+</header>
+
+<main>
+  <section id="when">
+    <h2 class="px" data-cell="3">When it frosts</h2>
+    <div class="trio">
+      <div>
+        <h3>After a stretch of nothing</h3>
+        <p>No key and no mouse for a minute and a half, or however long you set. Counting it needs no permission.</p>
+      </div>
+      <div>
+        <h3>Not during a film or a call</h3>
+        <p>Anything that is keeping the display awake holds it back. The keyboard may not have moved in ten minutes, but you are sitting right there, watching.</p>
+      </div>
+      <div>
+        <h3>Not while you read, if you like</h3>
+        <p>With the face check on, the front camera opens for a moment once the clock runs out. A face in frame holds the blur back. It can only ever hold it back, never cause it, and it is off until you turn it on.</p>
+      </div>
+    </div>
+    <p class="after">Any key or any movement clears it.</p>
+  </section>
+
+  <section id="looks">
+    <h2 class="px" data-cell="3">Two looks</h2>
+    <div class="looks">
+      <div class="look">
+        <h3 class="px" data-cell="3">Privacy</h3>
+        <p>Nothing under it is readable. It sinks towards black, comes up in under half a second, and is gone in a seventh.</p>
+        <p class="numbers">blur 110px · 45% darker · in 0.45s · out 0.14s</p>
+        <button class="try" data-look="privacy"><span class="px" data-cell="2">Try privacy</span></button>
+      </div>
+      <div class="look">
+        <h3 class="px" data-cell="3">Ambient</h3>
+        <p>Frosted rather than hidden: you can still tell what is under there. It drifts in over a second and a half, washed towards the screen’s own colour.</p>
+        <p class="numbers">blur 55px · 12% darker · 35% wash · in 1.6s · out 0.8s</p>
+        <button class="try" data-look="ambient"><span class="px" data-cell="2">Try ambient</span></button>
+      </div>
+    </div>
+    <p class="after">Every number is a slider. The settings panel floats above the frost, so a change shows on the next frame.</p>
+  </section>
+
+  <section id="cat">
+    <h2 class="px" data-cell="3">The cat</h2>
+    <p>A cat sits in the middle of the frost and every so often does something with itself, because nobody is watching. After ten minutes it lies down. When a cmux session starts waiting on you, it bristles.</p>
+    <div class="cats"></div>
+    <p>Under it, one line at a time: how long you have been gone, the time, the battery, how busy the machine is, whether an agent is waiting. The privacy look leaves out anything about your work.</p>
+  </section>
+
+  <section id="now">
+    <h2 class="px" data-cell="3">Right now</h2>
+    <p class="keys"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>⌘</kbd><kbd>B</kbd></p>
+    <p>Frosts the screen without waiting for the idle clock. A hand on the keyboard takes it back, after four seconds to let go of the keys and stand up. Pressed here, it frosts this page.</p>
+  </section>
+
+  <section id="install">
+    <h2 class="px" data-cell="3">Install</h2>
+    <ol class="steps">
+      <li>Download <a href="https://github.com/t42ji2ji/away-blur/releases/latest/download/Away-Blur.dmg">Away-Blur.dmg</a>, open it, and drag Away Blur into Applications.</li>
+      <li>Open it. It lives in the menu bar and has no Dock icon.</li>
+      <li>Allow it in System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording. It takes one still of the screen at the moment you leave, and nothing more.</li>
+    </ol>
+    <p class="meta">macOS 14 Sonoma or later, on Apple silicon or Intel.</p>
+  </section>
+
+  <section id="privacy">
+    <h2 class="px" data-cell="3">Privacy</h2>
+    <p>Nothing is written to disk or sent anywhere. The still lives in graphics memory and is gone when the blur clears. The camera stays off unless the face check is on, and even then it is open for a blink: long enough to see whether anyone is there, then closed.</p>
+  </section>
+</main>
+
+<footer>
+  <p>The source is on <a href="https://github.com/t42ji2ji/away-blur">GitHub</a>. The blur is the technique <a href="https://github.com/ninobc/mac-duo">mac-duo</a> by Nino Bouchedid uses for its fold.</p>
+</footer>
+
+<div class="frost" aria-hidden="true"><canvas></canvas></div>
+</body>
+</html>
