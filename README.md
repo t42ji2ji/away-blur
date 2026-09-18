@@ -119,6 +119,18 @@ Screen Recording has to be granted in System Settings → Privacy & Security →
 Screen & System Audio Recording. Nothing is written to disk or sent anywhere; the
 still lives in a Metal texture and dies when the blur clears.
 
+## Release
+
+```sh
+Scripts/release.sh             # dist/Away-Blur.dmg: universal, Developer ID, notarized
+Scripts/release.sh --publish   # and a GitHub release tagged from Info.plist's version
+```
+
+The release build is signed with the Developer ID and the hardened runtime,
+which refuses the camera unless `Resources/AwayBlur.entitlements` asks for it.
+Notarization reads a keychain profile, saved once with
+`xcrun notarytool store-credentials away-blur`.
+
 ## The cat
 
 A cat sits in the middle of the frosted screen and does something with itself
