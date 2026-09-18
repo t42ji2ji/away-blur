@@ -93,9 +93,14 @@ final class Preferences: ObservableObject {
     /// another app may already own it, silently.
     @Published var hotkeyLastFired: Date?
     @Published var showsCat: Bool { didSet { defaults.set(showsCat, forKey: "showsCat") } }
-    /// A face's own kaomoji, or "random" for a different one each time.
-    @Published var catFace: String { didSet { defaults.set(catFace, forKey: "catFace") } }
-    /// How tall the cat is, as a fraction of the screen.
+    /// One animation held up to be looked at, or "" to let the cat choose.
+    /// A tuning switch more than a preference, but remembering it costs
+    /// nothing and a held animation is how you look at one at all — otherwise
+    /// you wait up to half a minute for it to come round on its own.
+    @Published var catAnimation: String { didSet { defaults.set(catAnimation, forKey: "catAnimation") } }
+    /// How tall the cat's frame is, as a fraction of the screen. The frame,
+    /// not the cat: it carries slack above and below so a leap has somewhere
+    /// to go, and the cat fills about four fifths of it.
     @Published var catSize: Double { didSet { defaults.set(catSize, forKey: "catSize") } }
     @Published var showsCaption: Bool { didSet { defaults.set(showsCaption, forKey: "showsCaption") } }
     /// How far the cat boils, in cat pixels. 0 holds it perfectly still.
@@ -113,8 +118,8 @@ final class Preferences: ObservableObject {
         usesCamera = defaults.object(forKey: "usesCamera") as? Bool ?? false
         cameraRecheck = defaults.object(forKey: "cameraRecheck") as? Double ?? 60
         showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
-        catFace = defaults.string(forKey: "catFace") ?? Cat.faces[0].id
-        catSize = defaults.object(forKey: "catSize") as? Double ?? 0.12
+        catAnimation = defaults.string(forKey: "catAnimation") ?? ""
+        catSize = defaults.object(forKey: "catSize") as? Double ?? 0.20
         showsCaption = defaults.object(forKey: "showsCaption") as? Bool ?? true
         catJitter = defaults.object(forKey: "catJitter") as? Double ?? 1
         hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B

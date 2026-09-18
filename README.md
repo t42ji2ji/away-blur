@@ -121,66 +121,119 @@ still lives in a Metal texture and dies when the blur clears.
 
 ## The cat
 
-A cat floats in the middle of the frosted screen, and its face is a kaomoji.
+A cat sits in the middle of the frosted screen and does something with itself
+every twenty seconds or so, because nobody is watching.
 
-The art is text in `Sprite.swift` — `#` is ink, anything else is not — and a
-face is a second grid whose ink is cut *out* of the body, the way the eyes of a
-paper cut-out are holes rather than marks. There is no asset pipeline: changing
-the art means editing characters in the source, and it diffs.
+It used to be a grid of characters written by hand in `Sprite.swift` — `#` was
+ink — with a kaomoji face cut out of it as holes. That could hold exactly one
+shape: a rounded block with ears. No legs, no tail, so the only motion
+available was moving the whole block, and a whole block moving is a jitter
+rather than an action.
+
+So the frames are drawn now. `Art/` holds the sheets, each one a single image
+generation from one locked character reference, laid out as a 4x4 grid of
+384x256 cells. `Scripts/make-sprites.py` takes each cell down to a 48x32 grid
+of art pixels and writes `CatFrames.swift`: thirteen animations, 110 frames,
+169KB of texture built once and kept. Changing the art means replacing a sheet
+and running the script, not editing characters in the source.
+
+Two things in that script are not obvious and both were paid for. The
+downscale takes the **mode** of each 8x8 block and never the average — an
+average makes mid greys, and a mid grey in a one-bit sprite is a soft edge.
+And each animation is placed by its **feet**, with one offset for the whole
+animation rather than one per frame. The bounding box is no use: an arched
+back or a paw reaching forward stretches it, so centring the box slides the
+cat sideways under a motion that never moved it. Per-animation rather than
+per-frame is what leaves a gallop's float and a leap's arc where they were
+drawn, and it is also why the cat does not hop sideways when one animation
+hands over to the next.
 
 Three rules keep it sharp, and all three have to hold at once:
 
 1. A whole number of screen pixels per art pixel. Never a fraction.
 2. The whole sprite lands on a whole screen pixel, including while it is
-   drifting — the float is rounded every frame.
+   shaking — every offset is rounded before it is used.
 3. Nearest sampling. A pixel is a square and it stays a square.
 
-It never quite sits still: a boil of a pixel or so, rerolled three times a
-second. The rate is the whole of it — every frame is noise, nine times a second
-is a buzz, three reads as a drawing that will not settle. `Its jitter` in the
-panel sets how far, and zero holds it perfectly still.
+The frame is 48x32 and the cat is about 21x22 of it; the slack is there so a
+leap has somewhere to go. That means `Its size` in the panel sets the height of
+the *frame*, so the default is 20% of the screen rather than the old 12%, and
+the cat inside it comes out the same size it always was.
 
-On top of that it shakes when a cmux session starts waiting on you: a random offset decaying
-on the square of the time left, so it starts hard and settles instead of
-rattling evenly to the end, and rounded to whole screen pixels per display
-because a fraction of a pixel would soften the art for as long as it lasted.
-The technique is lifted from the pet in
-[bili-open-live](https://github.com/t42ji2ji). It also twitches by itself every
-half minute or so. The shake is the part you notice from across a room; the
-line only tells you which session once you have looked.
+It still never quite sits still: a boil of a pixel or so, rerolled three times
+a second. The rate is the whole of it — every frame is noise, nine times a
+second is a buzz, three reads as a drawing that will not settle. `Its jitter`
+in the panel sets how far, and zero holds it perfectly still.
 
 It is drawn dark on a light screen and light on a dark one, decided once from
 the picture's own average rather than per pixel, so the shape never breaks up
-over a busy background. While it is drifting the display link drops to about
+over a busy background. While it is moving the display link drops to about
 15fps; the screen is not being watched.
 
+## What it does
+
+Resting is `idle`, and in it the body, the head, the ears and the feet are
+identical in every frame, pixel for pixel. Only the tail moves, sweeping out
+to one side and back across the feet. The first attempt at it asked for a
+breath and an ear flick and a tail sweep all at once and came back as eight
+slightly different drawings of a sitting cat: the head lurched from side to
+side and the body dropped four art pixels — forty-eight screen pixels —
+between two frames. This is the animation that is on screen almost all the
+time, so it is the one that has to be a loop rather than eight pictures, and
+locking everything except one moving part is what makes it one.
+
+It blinks, an eighth of a second every few seconds and never on a metronome.
+That used to be free: the face was a second grid cut out of the body, so
+swapping the eyes cost nothing. The face is drawn into the art now, so the
+blink had to be drawn too — `idle` carries the same eight frames again with
+the eyes shut, and it is the only animation worth eight extra frames for it.
+
+Every twelve to thirty seconds it does one thing instead and goes back:
+stretch, shake, yawn, flop, roll, situp, paw at the frost, walk, run, pounce.
+After ten minutes away it lies down, `sleep` becomes the resting state, and
+from there the beats come every ninety seconds to four minutes and only the
+ones a cat does lying down are left. A cat that galloped across the screen
+every twenty seconds and lay straight back down would not read as asleep.
+
+`bristle` is the one with a job. When a cmux session starts waiting on you the
+cat crouches and then snaps into an arch, fur out, tail straight up — frame
+three to frame four is a total redraw, which is what being startled looks
+like. That is the part you notice from across a room; the line only tells you
+which session once you have looked. The shake rides on top of it, the
+technique lifted from the pet in
+[bili-open-live](https://github.com/t42ji2ji): a random offset decaying on the
+square of the time left, so it starts hard and settles instead of rattling
+evenly to the end, rounded to whole screen pixels per display because a
+fraction of a pixel would soften the art for as long as it lasted.
+
+Nothing transitions into anything. Every beat is a cut, which at this size and
+eight frames a second reads as a cat changing its mind rather than as a bug.
+The frame clock is wall time and not display link ticks, because the link is
+down at 15fps while the cat is the only thing moving and counting ticks would
+play a 12fps gallop at 15.
+
+Two animations did not survive the size, and they are worth recording so
+nobody tries them again. A full 360-degree turn chasing its tail came back as
+sixteen unrelated drawings: 60 to 90% of the pixels change between
+neighbouring frames, against 46% for the walk cycle. Kneading with the front
+paws, seen from the front, does not move enough pixels to see at all. What
+works at 48x32 is whole-body deformation and cyclic leg motion; what fails is
+turning, fine limb work, and anything whose entire signal is a two-pixel arc.
+
+Two rules came out of getting those wrong. When an animation fails, change the
+pose or the camera rather than the wording — a yawn read from the front is
+nothing and read from the side is obvious. And ask for one thing to change per
+frame: every animation here that asked for two or three at once came back
+jittering, and the fix was never a longer prompt.
+
 ```sh
-# Every face on one sheet, at the size it is actually drawn.
+# Every animation, one row each, every frame at the size it is drawn.
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --cat ~/Desktop/cats.png
-```
 
-Eyes and mouth are separate grids, because that is how a kaomoji is built —
-(･ω･) is two eyes and an ω — and because it makes blinking free: swap the eyes
-for the closed pair, keep the mouth. The cat blinks for an eighth of a second
-every few seconds, never on a metronome.
-
-Eyes stay narrow and a blank row separates them from the mouth. Widen them and
-the eyes and the ω run together into one zigzag across the whole face.
-
-The same cat sits in the menu bar. It is a template image, so the system paints
-it like every other icon up there — except when the machine is running out of
-memory, when it goes amber at warning and red at critical. That is the system's
-own pressure level, not a percentage: macOS answers normal for as long as it can
-still reclaim pages, so a Mac at 82% used with fifteen gigabytes compressed is
-still normal. Rare is the point — a colour that is always on is one nobody looks
-at twice.
-
-```sh
-# The real thing happens a few times a month, so the colour has to be reachable
-# before then. It holds until the machine crosses a level for real.
-Scripts/blurctl pressure warning
-Scripts/blurctl pressure critical
-Scripts/blurctl pressure normal
+# Half an hour of the cat with no screen at all: what it did and when. The
+# beats are half a minute apart and it does not lie down for ten minutes, so
+# this is the only way to see whether the rest of it happens.
+"dist/Away Blur.app/Contents/MacOS/AwayBlur" --beats 30
 ```
 
 ## The line under it

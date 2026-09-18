@@ -183,52 +183,48 @@ extension Diagnostics {
 
 extension Diagnostics {
 
-    /// `AwayBlur --cat out.png` — every face on one sheet, at the size it will
-    /// actually be drawn, so the art can be looked at without the screen going
-    /// away to see it.
-    static func drawCat(to path: String, cell: Double = 8) {
+    /// `AwayBlur --cat out.png` — every animation, one row each, every frame
+    /// at the size it is actually drawn. This is the sheet to look at after
+    /// replacing any art in `Art/`.
+    static func drawCat(to path: String, cell: Double = 4) {
         setvbuf(stdout, nil, _IONBF, 0)
         guard let renderer = BlurRenderer() else { print("no Metal device"); return }
 
-        let columns = Double(Cat.body.width), rows = Double(Cat.body.height)
-        let tileWidth = Int(columns * cell + cell * 6)
-        let tileHeight = Int(rows * cell + cell * 6)
-        let across = 3
-        let down = (Cat.faces.count + across - 1) / across
-
-        guard let flat = Offscreen.flat(width: tileWidth, height: tileHeight, level: 0.55),
+        let widest = Cat.animations.map(\.count).max() ?? 1
+        let rowWidth = Int(Double(Cat.width * widest) * cell) + 2
+        let rowHeight = Int(Double(Cat.height) * cell) + 2
+        guard let flat = Offscreen.flat(width: rowWidth, height: rowHeight, level: 0.55),
               let picture = renderer.makePicture(from: flat),
               let space = CGColorSpace(name: BlurRenderer.colourSpace),
-              let sheet = CGContext(data: nil, width: tileWidth * across, height: tileHeight * down,
-                                    bitsPerComponent: 8, bytesPerRow: tileWidth * across * 4, space: space,
+              let sheet = CGContext(data: nil, width: rowWidth,
+                                    height: rowHeight * Cat.animations.count,
+                                    bitsPerComponent: 8, bytesPerRow: rowWidth * 4, space: space,
                                     bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
                                         | CGBitmapInfo.byteOrder32Little.rawValue) else {
             print("could not set up the sheet")
             return
         }
 
-        for (index, face) in Cat.faces.enumerated() {
-            guard let stamp = renderer.makeStamp(face: face) else { continue }
-            let span = CGSize(width: columns * cell, height: rows * cell)
-            let placed = BlurRenderer.Stamp(
-                texture: stamp,
-                origin: CGPoint(x: ((Double(tileWidth) - span.width) / 2).rounded(),
-                                y: ((Double(tileHeight) - span.height) / 2).rounded()),
-                cell: cell, alpha: 1)
-            guard let tile = renderer.renderToImage(
-                picture: picture, size: CGSize(width: tileWidth, height: tileHeight),
+        for (index, animation) in Cat.animations.enumerated() {
+            guard let strip = renderer.makeStrip(animation) else { continue }
+            let placed = BlurRenderer.Stamp(texture: strip, origin: CGPoint(x: 1, y: 1),
+                                            cell: cell, alpha: 1)
+            guard let row = renderer.renderToImage(
+                picture: picture, size: CGSize(width: rowWidth, height: rowHeight),
                 look: FrameLook(blur: 0), maxRadius: 240, stamp: placed) else { continue }
-            let column = index % across, row = index / across
-            sheet.draw(tile, in: CGRect(x: column * tileWidth,
-                                        y: (down - 1 - row) * tileHeight,
-                                        width: tileWidth, height: tileHeight))
-            print("\(face.id) at \(column),\(row)")
+            sheet.draw(row, in: CGRect(x: 0, y: (Cat.animations.count - 1 - index) * rowHeight,
+                                       width: rowWidth, height: rowHeight))
+            let name = animation.name.padding(toLength: 8, withPad: " ", startingAt: 0)
+            print("\(name) \(animation.count) frames  \(animation.fps)fps  "
+                  + (animation.loops ? "loop" : "once")
+                  + "  \(String(format: "%.2f", animation.duration))s  \(animation.note)")
         }
         guard let image = sheet.makeImage(),
               Offscreen.write(image, to: URL(fileURLWithPath: path)) else {
             print("could not write \(path)")
             return
         }
+        print("\n\(Cat.packed.count) frames of \(Cat.width)x\(Cat.height), baseline row \(Cat.baseline)")
         print("wrote \(path)")
     }
 }
@@ -253,17 +249,18 @@ extension Diagnostics {
     /// `AwayBlur --scene out.png` — the cat and a line, at the size they are
     /// actually drawn on a screen this size.
     static func drawScene(to path: String, width: Int = 1512, height: Int = 982,
-                          size: Double = 0.12, text: String = "AWAY 8 MINUTES") {
+                          size: Double = 0.20, text: String = "AWAY 8 MINUTES") {
         setvbuf(stdout, nil, _IONBF, 0)
         guard let renderer = BlurRenderer() else { print("no Metal device"); return }
         guard let flat = Offscreen.flat(width: width, height: height, level: 0.5),
               let picture = renderer.makePicture(from: flat),
-              let stamp = renderer.makeStamp(face: Cat.faces[0]),
+              let stamp = renderer.makeStamp(bytes: Cat.stamp(frame: 0),
+                                             width: Cat.width, height: Cat.height),
               let caption = renderer.makeCaption(text) else { print("could not set up"); return }
 
-        let catCell = (Double(height) * size / Double(Cat.body.height)).rounded(.down)
-        let catSpan = CGSize(width: Double(Cat.body.width) * catCell,
-                             height: Double(Cat.body.height) * catCell)
+        let catCell = (Double(height) * size / Double(Cat.height)).rounded(.down)
+        let catSpan = CGSize(width: Double(Cat.width) * catCell,
+                             height: Double(Cat.height) * catCell)
         let lineCell = max(2, (catCell * 0.45).rounded())
         let lineSpan = CGSize(width: Double(caption.width) * lineCell,
                               height: Double(caption.height) * lineCell)
@@ -275,7 +272,9 @@ extension Diagnostics {
         let line = BlurRenderer.Stamp(
             texture: caption,
             origin: CGPoint(x: ((Double(width) - lineSpan.width) / 2).rounded(),
-                            y: ((Double(height) + catSpan.height) / 2 + catCell * 8.0).rounded()),
+                            y: ((Double(height) + catSpan.height) / 2
+                                - Double(Cat.height - 1 - Cat.baseline) * catCell
+                                + catCell * 8.0).rounded()),
             cell: lineCell, alpha: 1)
 
         guard let image = renderer.renderToImage(picture: picture,
@@ -343,5 +342,48 @@ extension Diagnostics {
             }
         }
         print("wrote \(path)")
+    }
+}
+
+extension Diagnostics {
+
+    /// `AwayBlur --beats [minutes]` — runs the cat headless and prints what it
+    /// did and when. Behaviour on this timescale never looks like anything in
+    /// a still: the beats are twelve to thirty seconds apart and the cat does
+    /// not lie down for ten minutes, so this is the only way to see whether
+    /// the rest of it happens at all.
+    static func showBeats(minutes: Double = 20) {
+        setvbuf(stdout, nil, _IONBF, 0)
+        var player = CatPlayer()
+        player.begin(at: 0)
+
+        // Tick at the display link's slow rate, which is what it really gets
+        // while the cat is the only thing moving.
+        let step = 1.0 / 15
+        var playing = player.animation.name
+        var since = 0.0
+        var counts: [String: Int] = [:]
+        var blinks = 0
+        var blinking = false
+        var now = 0.0
+        print("time   animation  for")
+        while now < minutes * 60 {
+            now += step
+            player.step(now: now, awayFor: now)
+            if player.blinking, !blinking { blinks += 1 }
+            blinking = player.blinking
+            guard player.animation.name != playing else { continue }
+            print(String(format: "%5.1fs  ", since)
+                  + playing.padding(toLength: 9, withPad: " ", startingAt: 0)
+                  + String(format: "%.1fs", now - since))
+            counts[playing, default: 0] += 1
+            playing = player.animation.name
+            since = now
+        }
+        counts[playing, default: 0] += 1
+        print("\nover \(Int(minutes)) minutes, \(blinks) blinks:")
+        for (name, count) in counts.sorted(by: { $0.value > $1.value }) {
+            print("  \(name.padding(toLength: 8, withPad: " ", startingAt: 0)) \(count)")
+        }
     }
 }

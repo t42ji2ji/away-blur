@@ -110,10 +110,10 @@ private struct SettingsView: View {
                 if preferences.showsCat {
                     row("Its size", $preferences.catSize, 0.05...0.35, "%.0f%%", scale: 100)
                     row("Its jitter", $preferences.catJitter, 0...3, "%.1f px")
-                    Picker("Its face", selection: $preferences.catFace) {
-                        ForEach(Cat.faces) { Text($0.id).tag($0.id) }
+                    Picker("Hold one animation", selection: $preferences.catAnimation) {
+                        Text("Let it choose").tag("")
                         Divider()
-                        Text("A different one each time").tag("random")
+                        ForEach(Cat.animations) { Text($0.name).tag($0.name) }
                     }
                 }
 

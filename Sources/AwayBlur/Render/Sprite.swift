@@ -1,165 +1,129 @@
 import Foundation
 import Metal
 
-/// Pixel art as text. `#` is ink, anything else is not.
-///
-/// Written by hand in the source rather than drawn in a tool and imported:
-/// at this size a grid of characters is the most direct thing there is, it
-/// diffs, and there is no pipeline between changing it and seeing it.
-struct Grid {
-    let rows: [String]
-    var height: Int { rows.count }
-    var width: Int { rows.map(\.count).max() ?? 0 }
+/// One animation: a run of frames out of `Cat.packed`, how fast it plays, and
+/// whether it repeats.
+struct CatAnimation: Identifiable, Hashable {
+    let name: String
+    let fps: Double
+    let loops: Bool
+    let frames: Range<Int>
+    /// The same frames again with the eyes shut, when there are any.
+    ///
+    /// The face is drawn into the art now rather than cut out of it on the
+    /// way to the screen, so a blink is no longer free — it has to be drawn.
+    /// Only the animation the cat spends nearly all its time in is worth
+    /// drawing twice for it.
+    let blink: Range<Int>?
+    let note: String
 
-    func isInk(_ column: Int, _ row: Int) -> Bool {
-        guard row >= 0, row < rows.count else { return false }
-        let line = Array(rows[row])
-        guard column >= 0, column < line.count else { return false }
-        return line[column] == "#"
-    }
+    var id: String { name }
+    var count: Int { frames.count }
+    /// How long one pass takes, which is what decides how many passes a
+    /// looping animation gets when it is used as a one-off beat.
+    var duration: Double { Double(count) / fps }
 }
 
-/// A face is two more grids, and their ink is cut *out* of the body — the way
-/// the eyes and nose are holes in a paper cut-out, not marks drawn on it.
+/// The cat's art: a 48x32 grid of art pixels per frame, one bit per pixel.
 ///
-/// Eyes and mouth are kept apart because that is how a kaomoji is built, and
-/// because it is what makes blinking free: swap the eyes, keep the mouth.
-struct Face: Identifiable, Hashable {
-    let id: String      // its own kaomoji, which is also what it is called
-    let eyes: Grid
-    let mouth: Grid
-
-    static func == (a: Face, b: Face) -> Bool { a.id == b.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-}
-
+/// It used to be a grid of characters written by hand in this file, and a face
+/// cut out of it as holes. That could hold a rounded block with ears and
+/// nothing else — no legs, no tail — so the only motion available was moving
+/// the whole block. A cat that stretches or bristles needs limbs, and limbs
+/// need more pixels than a grid of characters in the source can carry.
+///
+/// So the frames are drawn instead: `Art/` holds the sheets, each one a single
+/// generation from one locked character reference, and
+/// `Scripts/make-sprites.py` cuts them to this grid and writes
+/// `CatFrames.swift`, which is where `width`, `height`, `baseline`,
+/// `animations` and `packed` all come from. Editing the art means replacing a
+/// sheet and running the script, not editing characters here.
 enum Cat {
 
-    /// 20 x 19. Ears that stay narrow long enough to read as ears, then one
-    /// solid rounded block — the same build as the paper-cut rabbit this came
-    /// from.
-    static let body = Grid(rows: [
-        "##................##",
-        "###..............###",
-        "###..............###",
-        "####............####",
-        "####............####",
-        "#####..........#####",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        "####################",
-        ".##################.",
-        ".##################.",
-        "..################..",
-    ])
-
-    /// Where the two halves of a face sit in the body, in body pixels.
-    static let eyesOrigin = (column: 3, row: 8)
-    static let mouthOrigin = (column: 3, row: 14)
-
-    // Eyes, 14 x 5.
-    static let bars = Grid(rows: [
-        "..##......##..",
-        "..##......##..",
-        "..##......##..",
-        "..##......##..",
-        "..............",
-    ])
-    static let carets = Grid(rows: [
-        "..............",
-        "...#......#...",
-        "..#.#....#.#..",
-        "..............",
-        "..............",
-    ])
-    /// Also what every face blinks with.
-    static let closed = Grid(rows: [
-        "..............",
-        "..............",
-        "..###....###..",
-        "..............",
-        "..............",
-    ])
-    static let chevrons = Grid(rows: [
-        "..#........#..",
-        "...#......#...",
-        "...#......#...",
-        "..#........#..",
-        "..............",
-    ])
-
-    // Mouths, 14 x 2.
-    static let omega = Grid(rows: [
-        "....#.##.#....",
-        ".....#..#.....",
-    ])
-    static let round = Grid(rows: [
-        ".....####.....",
-        ".....####.....",
-    ])
-    static let flat = Grid(rows: [
-        ".....####.....",
-        "..............",
-    ])
-    /// The = of (=^ω^=). Whiskers come off the cheeks; up by the ears they
-    /// just read as two chips out of the silhouette.
-    static let whiskered = Grid(rows: [
-        "##..#.##.#..##",
-        ".....#..#.....",
-    ])
-
-    static let faces: [Face] = [
-        Face(id: "(･ω･)", eyes: bars, mouth: omega),
-        Face(id: "(＾ω＾)", eyes: carets, mouth: omega),
-        Face(id: "(－ω－)", eyes: closed, mouth: omega),
-        Face(id: "(＞﹏＜)", eyes: chevrons, mouth: flat),
-        Face(id: "(･o･)", eyes: bars, mouth: round),
-        Face(id: "(=^ω^=)", eyes: carets, mouth: whiskered),
-    ]
-
-    static func face(named id: String) -> Face {
-        faces.first { $0.id == id } ?? faces[0]
+    static func animation(named name: String) -> CatAnimation {
+        animations.first { $0.name == name } ?? animations[0]
     }
 
-    /// One byte per pixel: ink, minus whatever the face cuts out of it.
-    static func stamp(face: Face, blinking: Bool = false) -> [UInt8] {
-        let eyes = blinking ? closed : face.eyes
-        var bytes = [UInt8](repeating: 0, count: body.width * body.height)
-        for row in 0..<body.height {
-            for column in 0..<body.width {
-                guard body.isInk(column, row) else { continue }
-                let cut = eyes.isInk(column - eyesOrigin.column, row - eyesOrigin.row)
-                    || face.mouth.isInk(column - mouthOrigin.column, row - mouthOrigin.row)
-                bytes[row * body.width + column] = cut ? 0 : 255
+    /// One byte per pixel, unpacked from the hex: ink is 255.
+    ///
+    /// Nothing is cut out of it. The eyes are holes drawn into the sheet, so a
+    /// hole here is a pixel that was simply never ink — the face does not have
+    /// to be composited on, and it moves with the pose for free.
+    static func stamp(frame: Int) -> [UInt8] {
+        var bytes = [UInt8](repeating: 0, count: width * height)
+        var index = 0
+        for character in packed[frame] {
+            let nibble = character.hexDigitValue ?? 0
+            for bit in 0..<4 where nibble & (8 >> bit) != 0 {
+                bytes[index + bit] = 255
             }
+            index += 4
         }
         return bytes
+    }
+
+    /// A frame trimmed to its ink, for the places that want the cat and not
+    /// the slack around it: the app icon and the menu bar.
+    static func cropped(frame: Int) -> (bytes: [UInt8], width: Int, height: Int) {
+        let full = stamp(frame: frame)
+        var minColumn = width, maxColumn = -1, minRow = height, maxRow = -1
+        for row in 0..<height {
+            for column in 0..<width where full[row * width + column] > 0 {
+                minColumn = min(minColumn, column); maxColumn = max(maxColumn, column)
+                minRow = min(minRow, row); maxRow = max(maxRow, row)
+            }
+        }
+        guard maxColumn >= minColumn else { return (full, width, height) }
+        let cropWidth = maxColumn - minColumn + 1, cropHeight = maxRow - minRow + 1
+        var bytes = [UInt8](repeating: 0, count: cropWidth * cropHeight)
+        for row in 0..<cropHeight {
+            for column in 0..<cropWidth {
+                bytes[row * cropWidth + column] = full[(minRow + row) * width + minColumn + column]
+            }
+        }
+        return (bytes, cropWidth, cropHeight)
     }
 }
 
 extension BlurRenderer {
 
-    /// The cat as a one-channel texture, sampled with nearest and drawn at a
+    /// One frame as a one-channel texture, sampled with nearest and drawn at a
     /// whole-number scale, which is the whole of what keeps pixel art sharp.
-    func makeStamp(face: Face, blinking: Bool = false) -> MTLTexture? {
-        let width = Cat.body.width
-        let height = Cat.body.height
+    func makeStamp(bytes: [UInt8], width: Int, height: Int) -> MTLTexture? {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .r8Unorm, width: width, height: height, mipmapped: false)
         descriptor.usage = [.shaderRead]
         guard let texture = device.makeTexture(descriptor: descriptor) else { return nil }
-        let bytes = Cat.stamp(face: face, blinking: blinking)
         bytes.withUnsafeBytes { raw in
             texture.replace(region: MTLRegionMake2D(0, 0, width, height),
                             mipmapLevel: 0, withBytes: raw.baseAddress!, bytesPerRow: width)
         }
         return texture
+    }
+
+    /// Every frame, built in one go and kept. At 1.5KB each the whole lot is
+    /// less than 200KB, which is cheaper than the code it would take to decide
+    /// when to build them.
+    func makeFrames() -> [MTLTexture] {
+        (0..<Cat.packed.count).compactMap {
+            makeStamp(bytes: Cat.stamp(frame: $0), width: Cat.width, height: Cat.height)
+        }
+    }
+
+    /// One animation laid out left to right in a single texture, so `--cat`
+    /// can show a whole row of it in one pass.
+    func makeStrip(_ animation: CatAnimation) -> MTLTexture? {
+        let width = Cat.width * animation.count
+        var bytes = [UInt8](repeating: 0, count: width * Cat.height)
+        for (column, frame) in animation.frames.enumerated() {
+            let source = Cat.stamp(frame: frame)
+            for row in 0..<Cat.height {
+                let from = row * Cat.width
+                let to = row * width + column * Cat.width
+                bytes.replaceSubrange(to..<(to + Cat.width),
+                                      with: source[from..<(from + Cat.width)])
+            }
+        }
+        return makeStamp(bytes: bytes, width: width, height: Cat.height)
     }
 }

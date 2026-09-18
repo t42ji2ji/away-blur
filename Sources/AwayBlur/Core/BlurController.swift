@@ -30,10 +30,12 @@ final class BlurController {
     private var retryAfter: CFTimeInterval = 0
     private var permission = (checked: CFTimeInterval(0), granted: false)
     private let camera = FaceCheck()
-    private var stamp: MTLTexture?
-    private var blinkStamp: MTLTexture?
-    private var blinkAgainAt: CFTimeInterval = 0
-    private var blinkingUntil: CFTimeInterval = 0
+    /// Every frame of every animation, built on the first blur and kept.
+    private var frames: [MTLTexture] = []
+    /// What the cat is doing. Stepped off wall time rather than off display
+    /// link ticks: the link drops to 15fps while the cat is the only thing
+    /// moving, so counting ticks would play a 12fps gallop at 15.
+    private var player = CatPlayer()
     private var caption: MTLTexture?
     private var captionText = ""
     private var captionLines: [String] = []
@@ -50,7 +52,6 @@ final class BlurController {
     private var shakeOver: CFTimeInterval = 0.5
     private var shakeCells: Double = 0
     private var shakeOffset = CGPoint.zero
-    private var twitchAt: CFTimeInterval = 0
 
     /// The constant boil, rerolled three times a second. Every frame is noise,
     /// nine times a second is a buzz; three is a drawing that will not quite
@@ -73,10 +74,6 @@ final class BlurController {
             boilOffset = amount <= 0 ? .zero
                 : CGPoint(x: Double.random(in: -amount...amount),
                           y: Double.random(in: -amount...amount))
-        }
-        if now >= twitchAt {
-            if twitchAt != 0 { shake(1.6, over: 0.35) }
-            twitchAt = now + Double.random(in: 12...30)
         }
         guard now < shakeUntil else {
             shakeOffset = .zero
@@ -290,16 +287,13 @@ final class BlurController {
         FileLog.write("presenting \(overlays.count) overlay(s)")
         guard !overlays.isEmpty else { return }
         awaySince = CACurrentMediaTime()
-        twitchAt = 0
         shakeUntil = 0
         lastWaiting = nil
         captionSince = 0
         captionTurn = 0
         captionLines = []
-        let face = chosenFace()
-        stamp = renderer.makeStamp(face: face)
-        blinkStamp = renderer.makeStamp(face: face, blinking: true)
-        blinkAgainAt = 0
+        if frames.isEmpty { frames = renderer.makeFrames() }
+        player.begin(at: CACurrentMediaTime())
         progress = 0
         // Held, not rising: the ramp only starts once the sharp copy is up.
         phase = .held
@@ -361,24 +355,6 @@ final class BlurController {
         }
     }
 
-    /// The face for this run. Random means a different one each time the
-    /// screen goes, which is the only place the choice is ever made.
-    private func chosenFace() -> Face {
-        preferences.catFace == "random"
-            ? (Cat.faces.randomElement() ?? Cat.faces[0])
-            : Cat.face(named: preferences.catFace)
-    }
-
-    /// Whole pixels per cell, whole pixels of travel, centred. Fractions of a
-    /// pixel anywhere here and the art goes soft.
-    /// Cats blink often and briefly, and not on a metronome.
-    private func updateBlink() {
-        let now = CACurrentMediaTime()
-        guard now >= blinkAgainAt else { return }
-        blinkingUntil = now + 0.13
-        blinkAgainAt = now + Double.random(in: 2.4...6.5)
-    }
-
     /// Picks the line and how much of it is showing, once per frame.
     private func updateCaption() {
         guard preferences.showsCaption, let renderer else { return }
@@ -393,7 +369,10 @@ final class BlurController {
             // The shake is the part you notice from across a room; the line
             // only tells you which one once you have looked.
             let waiting = preferences.look == .ambient ? Sessions.waiting() : nil
-            if let waiting, waiting != lastWaiting { shake(2.2, over: 0.8) }
+            if let waiting, waiting != lastWaiting {
+                player.play("bristle", at: now)
+                shake(2.2, over: 0.8)
+            }
             lastWaiting = waiting
         }
         guard !captionLines.isEmpty else { return }
@@ -418,11 +397,15 @@ final class BlurController {
     private func captionPlacement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
         guard preferences.showsCaption, let caption else { return nil }
         let size = overlay.layer.drawableSize
-        let catCell = (size.height * preferences.catSize / Double(Cat.body.height)).rounded(.down)
+        let catCell = (size.height * preferences.catSize / Double(Cat.height)).rounded(.down)
         let cell = max(2, (catCell * 0.45).rounded())
         let span = CGSize(width: Double(caption.width) * cell, height: Double(caption.height) * cell)
+        // A frame is taller than the cat standing in it — the slack is there
+        // so a leap has somewhere to go — so the line hangs off where the
+        // resting cat's feet actually are, not off the bottom of the frame.
+        let slack = Double(Cat.height - 1 - Cat.baseline) * max(2, catCell)
         let catBottom = preferences.showsCat
-            ? (size.height + Double(Cat.body.height) * max(2, catCell)) / 2
+            ? (size.height + Double(Cat.height) * max(2, catCell)) / 2 - slack
             : size.height / 2
         return BlurRenderer.Stamp(
             texture: caption,
@@ -438,20 +421,17 @@ final class BlurController {
     }
 
     private func placement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
-        guard preferences.showsCat, let stamp else { return nil }
-        let shut = CACurrentMediaTime() < blinkingUntil
-        let texture = (shut ? blinkStamp : stamp) ?? stamp
+        guard preferences.showsCat, !frames.isEmpty else { return nil }
+        let texture = frames[player.stamp]
         let size = overlay.layer.drawableSize
-        let columns = Double(stamp.width), rows = Double(stamp.height)
-        let cell = max(2, (size.height * preferences.catSize / rows).rounded(.down))
-        let span = CGSize(width: columns * cell, height: rows * cell)
-        let float = (sin(CACurrentMediaTime() * 2 * .pi / 2.6) * cell * 1.5).rounded()
+        let cell = max(2, (size.height * preferences.catSize / Double(Cat.height)).rounded(.down))
+        let span = CGSize(width: Double(Cat.width) * cell, height: Double(Cat.height) * cell)
         let shakeX = ((shakeOffset.x + boilOffset.x) * cell).rounded()
         let shakeY = ((shakeOffset.y + boilOffset.y) * cell).rounded()
         return BlurRenderer.Stamp(
             texture: texture,
             origin: CGPoint(x: ((size.width - span.width) / 2 + shakeX).rounded(),
-                            y: ((size.height - span.height) / 2 + float + shakeY).rounded()),
+                            y: ((size.height - span.height) / 2 + shakeY).rounded()),
             cell: cell,
             alpha: ease(progress))
     }
@@ -462,7 +442,9 @@ final class BlurController {
         let shown = pinned ?? progress
         let look = FrameLook(settings: settings, progress: shown)
         if preferences.showsCat {
-            updateBlink()
+            player.step(now: CACurrentMediaTime(),
+                        awayFor: CACurrentMediaTime() - awaySince,
+                        held: preferences.catAnimation)
             updateShake()
         }
         updateCaption()
@@ -497,8 +479,8 @@ final class BlurController {
         stopLink()
         overlays.forEach { $0.close() }
         overlays.removeAll()
-        stamp = nil
-        blinkStamp = nil
+        // The frames outlive the overlay on purpose: they are 169KB and they
+        // are the same 169KB every time the screen goes.
         caption = nil
         captionText = ""
         captionSince = 0

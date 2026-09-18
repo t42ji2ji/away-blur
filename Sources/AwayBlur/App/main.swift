@@ -40,6 +40,13 @@ if let index = CommandLine.arguments.firstIndex(of: "--cat") {
     exit(0)
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--beats") {
+    let minutes = CommandLine.arguments.count > index + 1
+        ? Double(CommandLine.arguments[index + 1]) ?? 20 : 20
+    Diagnostics.showBeats(minutes: minutes)
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--camera") {
     Diagnostics.lookThroughCamera()
     exit(0)

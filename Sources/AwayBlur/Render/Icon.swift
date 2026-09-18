@@ -39,13 +39,15 @@ enum Icon {
     }
 
     static func render(_ renderer: BlurRenderer, size: Int) -> CGImage? {
+        let cat = Cat.cropped(frame: Cat.animation(named: "idle").frames.lowerBound)
         guard let source = field(size: size),
               let picture = renderer.makePicture(from: source),
-              let stamp = renderer.makeStamp(face: Cat.face(named: "(･ω･)")) else { return nil }
+              let stamp = renderer.makeStamp(bytes: cat.bytes, width: cat.width, height: cat.height)
+        else { return nil }
 
         let side = Double(size)
-        let cell = max(1, (side * 0.42 / Double(Cat.body.height)).rounded())
-        let span = CGSize(width: Double(Cat.body.width) * cell, height: Double(Cat.body.height) * cell)
+        let cell = max(1, (side * 0.42 / Double(cat.height)).rounded())
+        let span = CGSize(width: Double(cat.width) * cell, height: Double(cat.height) * cell)
         let placed = BlurRenderer.Stamp(
             texture: stamp,
             origin: CGPoint(x: ((side - span.width) / 2).rounded(),
@@ -75,9 +77,16 @@ enum Icon {
     /// The menu bar cat. With no tint it is a template image and the system
     /// paints it like every other icon up there; with one it is that colour
     /// instead, which is what memory pressure does to it.
+    ///
+    /// It is the sleeping cat, curled up, and that is a size decision rather
+    /// than a joke: the standing cat is 22 art pixels tall, which is the
+    /// height of the whole menu bar, and scaling it down to fit would cost the
+    /// sharpness the rest of the app is built around. The curl is 15 tall, it
+    /// fits, and it still reads as a cat.
     static func menuBar(cell: Int = 2, tint: CGColor? = nil) -> NSImage? {
-        let bytes = Cat.stamp(face: Cat.face(named: "(･ω･)"))
-        let columns = Cat.body.width, rows = Cat.body.height
+        let cat = Cat.cropped(frame: Cat.animation(named: "sleep").frames.lowerBound)
+        let bytes = cat.bytes
+        let columns = cat.width, rows = cat.height
         let width = columns * cell, height = rows * cell
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
                                       bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
