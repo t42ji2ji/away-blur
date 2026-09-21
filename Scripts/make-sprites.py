@@ -123,16 +123,24 @@ def lock(frames, count, columns):
     low, high = columns
     body = range(low, high + 1)
     awake, shut = frames[:count], frames[count:]
-    for frame in awake[1:]:
+    # What the frames mostly agree on, not what the first of them happens to
+    # say: the first frame of this sheet draws one eye a pixel taller than the
+    # other, and taking it as the truth would have the cat sit there lopsided
+    # for ever rather than blink it away every few frames.
+    still = [[sum(frame[row][column] for frame in awake) * 2 > len(awake)
+              for column in range(AW)] for row in range(AH)]
+    for frame in awake:
         for row in range(AH):
             for column in body:
-                frame[row][column] = awake[0][row][column]
+                frame[row][column] = still[row][column]
     if not shut:
         return awake
     # The eyes are one band of rows. The two sheets also disagree about a foot
     # pixel, and taking that along would move a foot every time the cat blinked,
     # so the widest band wins and the rest is the sheets' own noise.
-    apart = {row: sum(shut[0][row][column] != awake[0][row][column] for column in body)
+    closed = [[sum(frame[row][column] for frame in shut) * 2 > len(shut)
+               for column in range(AW)] for row in range(AH)]
+    apart = {row: sum(closed[row][column] != still[row][column] for column in body)
              for row in range(AH)}
     bands, band = [], []
     for row in sorted(row for row, count in apart.items() if count):
@@ -148,7 +156,7 @@ def lock(frames, count, columns):
         copy = [line[:] for line in frame]
         for row in eyes:
             for column in body:
-                copy[row][column] = shut[0][row][column]
+                copy[row][column] = closed[row][column]
         blinked.append(copy)
     print("  locked %s to frame 1 outside columns %d-%d; eyes on rows %s"
           % ("idle", low, high, ",".join(map(str, eyes))))
