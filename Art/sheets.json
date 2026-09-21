@@ -2,40 +2,197 @@
   "_": [
     "Where every animation comes from. Each sheet is one GPT generation, 1536x1024,",
     "cut into a 4x4 grid of 384x256 cells; a cell downscales by 8 to a 48x32 grid of",
-    "art pixels, taking the mode of each 8x8 block and never the average — an average",
+    "art pixels, taking the mode of each 8x8 block and never the average \u2014 an average",
     "makes mid greys, and a mid grey in a one-bit sprite is a soft edge.",
     "",
     "The sheets here are not what came back from the generator. That was RGBA with a",
     "fifth of every image in soft alpha, 5.9MB for eleven files, and the pipeline",
     "reads none of it: only `alpha > 128`. They are stored as LA with a one-bit mask",
-    "in the alpha channel instead — same generated output, byte for byte, 121KB. The",
+    "in the alpha channel instead \u2014 same generated output, byte for byte, 121KB. The",
     "soft edges are gone for good, so 8 and 128 are now baked in: a different block",
     "size or a different threshold would have to start from new sheets.",
     "",
     "cells are 1-based and inclusive; drop lists cells to leave out. blink names",
-    "cells holding the same frames with the eyes shut, in the same order — the face",
+    "cells holding the same frames with the eyes shut, in the same order \u2014 the face",
     "is drawn into the art, so a blink has to be drawn too. There is no",
     "alignment switch: every animation gets one offset putting its feet on the shared",
-    "ground line, which leaves whatever happens inside it — a gallop's float, a",
-    "leap — exactly as drawn. Scripts/make-sprites.py explains why.",
+    "ground line, which leaves whatever happens inside it \u2014 a gallop's float, a",
+    "leap \u2014 exactly as drawn. Scripts/make-sprites.py explains why.",
     "",
     "That script turns this into Sources/AwayBlur/Render/CatFrames.swift."
   ],
   "cell": 384,
   "block": 8,
   "animations": [
-    { "name": "idle",    "sheet": "idle.png",          "cells": [1, 8],  "blink": [9, 16], "loop": true, "fps": 8, "view": "front", "note": "sitting, tail sweeping" },
-    { "name": "sleep",   "sheet": "bristle-sleep.png", "cells": [9, 16], "loop": true,  "fps": 6,  "view": "side",  "note": "curled up, breathing" },
-    { "name": "bristle", "sheet": "bristle-sleep.png", "cells": [1, 8],  "loop": false, "fps": 8,  "view": "side",  "note": "startled: fur out, tail up" },
-    { "name": "stretch", "sheet": "idle-stretch.png",  "cells": [9, 16], "loop": false, "fps": 8,  "view": "side",  "note": "the full stretch", "drop": [15] },
-    { "name": "shake",   "sheet": "shake.png",         "cells": [1, 8],  "loop": false, "fps": 10, "view": "side",  "note": "a shake from head to tail" },
-    { "name": "yawn",    "sheet": "yawn-run.png",      "cells": [1, 8],  "loop": false, "fps": 8,  "view": "side",  "note": "head back, jaw open" },
-    { "name": "flop",    "sheet": "flop.png",          "cells": [1, 8],  "loop": false, "fps": 8,  "view": "side",  "note": "over onto its back" },
-    { "name": "roll",    "sheet": "roll-situp.png",    "cells": [1, 8],  "loop": false, "fps": 8,  "view": "side",  "note": "rolling right over" },
-    { "name": "situp",   "sheet": "roll-situp.png",    "cells": [9, 16], "loop": false, "fps": 8,  "view": "side",  "note": "up tall on its haunches" },
-    { "name": "paw",     "sheet": "walk-paw.png",      "cells": [9, 16], "loop": false, "fps": 8,  "view": "front", "note": "a paw against the frost" },
-    { "name": "walk",    "sheet": "walk-paw.png",      "cells": [1, 8],  "loop": true,  "fps": 8,  "view": "side",  "note": "a walk cycle, in place" },
-    { "name": "run",     "sheet": "yawn-run.png",      "cells": [9, 16], "loop": true,  "fps": 12, "view": "side",  "note": "a gallop, in place", "drop": [15] },
-    { "name": "pounce",  "sheet": "pounce.png",        "cells": [1, 16], "loop": false, "fps": 10, "view": "side",  "note": "stalk, coil, leap, land" }
+    {
+      "name": "idle",
+      "sheet": "idle.png",
+      "cells": [
+        1,
+        8
+      ],
+      "blink": [
+        9,
+        16
+      ],
+      "loop": true,
+      "fps": 8,
+      "view": "front",
+      "note": "sitting, tail sweeping",
+      "still": [
+        19,
+        32
+      ]
+    },
+    {
+      "name": "sleep",
+      "sheet": "bristle-sleep.png",
+      "cells": [
+        9,
+        16
+      ],
+      "loop": true,
+      "fps": 6,
+      "view": "side",
+      "note": "curled up, breathing"
+    },
+    {
+      "name": "bristle",
+      "sheet": "bristle-sleep.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "startled: fur out, tail up"
+    },
+    {
+      "name": "stretch",
+      "sheet": "idle-stretch.png",
+      "cells": [
+        9,
+        16
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "the full stretch",
+      "drop": [
+        15
+      ]
+    },
+    {
+      "name": "shake",
+      "sheet": "shake.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 10,
+      "view": "side",
+      "note": "a shake from head to tail"
+    },
+    {
+      "name": "yawn",
+      "sheet": "yawn-run.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "head back, jaw open"
+    },
+    {
+      "name": "flop",
+      "sheet": "flop.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "over onto its back"
+    },
+    {
+      "name": "roll",
+      "sheet": "roll-situp.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "rolling right over"
+    },
+    {
+      "name": "situp",
+      "sheet": "roll-situp.png",
+      "cells": [
+        9,
+        16
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "up tall on its haunches"
+    },
+    {
+      "name": "paw",
+      "sheet": "walk-paw.png",
+      "cells": [
+        9,
+        16
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "front",
+      "note": "a paw against the frost"
+    },
+    {
+      "name": "walk",
+      "sheet": "walk-paw.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": true,
+      "fps": 8,
+      "view": "side",
+      "note": "a walk cycle, in place"
+    },
+    {
+      "name": "run",
+      "sheet": "yawn-run.png",
+      "cells": [
+        9,
+        16
+      ],
+      "loop": true,
+      "fps": 12,
+      "view": "side",
+      "note": "a gallop, in place",
+      "drop": [
+        15
+      ]
+    },
+    {
+      "name": "pounce",
+      "sheet": "pounce.png",
+      "cells": [
+        1,
+        16
+      ],
+      "loop": false,
+      "fps": 10,
+      "view": "side",
+      "note": "stalk, coil, leap, land"
+    }
   ]
 }

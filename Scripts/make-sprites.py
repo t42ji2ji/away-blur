@@ -106,6 +106,55 @@ def placed(frames, name, also=()):
     return out
 
 
+def lock(frames, count, columns):
+    """`idle` is a loop rather than eight drawings of a sitting cat.
+
+    The sheet does not come back that way: a generation varies the ears, the
+    outline of the feet and, in three of the eight cells, the height of an eye
+    by one pixel. Any of that flickering eight times a second reads as a cat
+    shuffling about, not a cat sitting still. So everything inside the columns
+    the cat sits in is taken from the first frame, and only the tail, which
+    swings outside them, is left free.
+
+    The blink frames then stop being separate drawings too: each one is the
+    frame it replaces with the shut eyes laid into it, so a blink changes the
+    rows the eyes are on and nothing else, and the tail carries on its sweep
+    while the cat's eyes are closed."""
+    low, high = columns
+    body = range(low, high + 1)
+    awake, shut = frames[:count], frames[count:]
+    for frame in awake[1:]:
+        for row in range(AH):
+            for column in body:
+                frame[row][column] = awake[0][row][column]
+    if not shut:
+        return awake
+    # The eyes are one band of rows. The two sheets also disagree about a foot
+    # pixel, and taking that along would move a foot every time the cat blinked,
+    # so the widest band wins and the rest is the sheets' own noise.
+    apart = {row: sum(shut[0][row][column] != awake[0][row][column] for column in body)
+             for row in range(AH)}
+    bands, band = [], []
+    for row in sorted(row for row, count in apart.items() if count):
+        if band and row != band[-1] + 1:
+            bands.append(band)
+            band = []
+        band.append(row)
+    if band:
+        bands.append(band)
+    eyes = max(bands, key=lambda band: sum(apart[row] for row in band))
+    blinked = []
+    for frame in awake:
+        copy = [line[:] for line in frame]
+        for row in eyes:
+            for column in body:
+                copy[row][column] = shut[0][row][column]
+        blinked.append(copy)
+    print("  locked %s to frame 1 outside columns %d-%d; eyes on rows %s"
+          % ("idle", low, high, ",".join(map(str, eyes))))
+    return awake + blinked
+
+
 def pack(grid):
     bits = "".join("1" if grid[r][c] else "0" for r in range(AH) for c in range(AW))
     return "%0*x" % ((AW * AH + 3) // 4, int(bits, 2))
@@ -129,6 +178,8 @@ def main():
             shut = [sheets[name][i - 1] for i in range(blinkFirst, blinkLast + 1)]
             assert len(shut) == len(cut), animation["name"] + ": blink cells do not match"
         picked = placed(cut, animation["name"], shut)
+        if "still" in animation:
+            picked = lock(picked, len(cut), animation["still"])
         span = range(len(frames), len(frames) + len(cut))
         blink = range(span.stop, span.stop + len(shut)) if shut else None
         animations.append((animation, span, blink))

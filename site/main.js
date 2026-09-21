@@ -26,7 +26,7 @@ const anim = Object.fromEntries(CAT.animations.map(a =>
 
 const BEATS = ['stretch', 'shake', 'yawn', 'flop', 'roll', 'situp', 'paw', 'walk', 'run', 'pounce'];
 const SLEEPY_BEATS = ['yawn', 'roll', 'stretch'];
-const AWAKE_GAP = [5, 12];       // the app waits 12 to 30s; a visitor will not
+const AWAKE_GAP = [12, 30];      // the app's own gap: mostly it sits
 const ASLEEP_GAP = [90, 240];
 const SLEEP_AFTER = 600;
 const resting = away => away > SLEEP_AFTER ? anim.sleep : anim.idle;

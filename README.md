@@ -206,6 +206,17 @@ between two frames. This is the animation that is on screen almost all the
 time, so it is the one that has to be a loop rather than eight pictures, and
 locking everything except one moving part is what makes it one.
 
+Asking for that is not the same as getting it. The sheet that came back still
+varies the ears, the outline of the feet and, in three of the eight cells, the
+height of an eye by a pixel, and any of that at eight frames a second reads as
+a cat shuffling rather than sitting. So `idle` carries a `still` span in
+`sheets.json` — the columns the cat sits in — and `make-sprites.py` takes
+everything inside them from the first frame, leaving only the tail, which
+swings outside them, free to move. The blink frames are then built rather than
+drawn: each one is the frame it replaces with the shut eyes laid into it, so a
+blink changes the four rows the eyes are on and nothing else, and the tail
+carries on its sweep while they are closed.
+
 It blinks, an eighth of a second every few seconds and never on a metronome.
 That used to be free: the face was a second grid cut out of the body, so
 swapping the eyes cost nothing. The face is drawn into the art now, so the
