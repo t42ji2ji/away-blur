@@ -31,6 +31,15 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --options runtime --timestamp \
     --entitlements Resources/AwayBlur.entitlements \
     --sign "$IDENTITY" --identifier com.dora.away-blur "$APP"
+# The app is notarized on its own first, so the ticket can be stapled into the
+# bundle. Stapling only the DMG leaves the copy in Applications asking Apple
+# about itself the first time it opens, which fails with no network.
+ZIP=dist/notarize.zip
+ditto -c -k --keepParent "$APP" "$ZIP"
+xcrun notarytool submit "$ZIP" --keychain-profile "$PROFILE" --wait
+rm -f "$ZIP"
+xcrun stapler staple "$APP"
+
 ln -s /Applications "$STAGE/Applications"
 
 DMG=dist/Away-Blur.dmg
