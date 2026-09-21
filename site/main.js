@@ -179,10 +179,14 @@ const pixelText = [...document.querySelectorAll('.px')].map(pixelEntry);
 
 function setLetters() {
   for (const { element, text, said } of pixelText) {
-    // A whole number of pixels per letter pixel, never a fraction.
-    const cell = element.hasAttribute('data-fit')
-      ? clamp(Math.floor(element.clientWidth / (text.length * 7 - 1)), 3, 17)
-      : Number(element.dataset.cell);
+    // A whole number of pixels per letter pixel, never a fraction. The letters
+    // already there are cleared before the space they have is measured, or a
+    // heading that has grown can never find out that the window shrank.
+    let cell = Number(element.dataset.cell);
+    if (element.hasAttribute('data-fit')) {
+      element.replaceChildren();
+      cell = clamp(Math.floor(element.clientWidth / (text.length * 7 - 1)), 3, 17);
+    }
     element.replaceChildren(said, lettersSVG(text, cell));
   }
 }
@@ -400,7 +404,7 @@ addEventListener('keydown', onInput);
 
 for (const button of document.querySelectorAll('.try')) {
   button.addEventListener('click', () => {
-    const name = button.dataset.look;
+    const name = button.dataset.look || lookName;
     goAway(name, seconds(), LOOKS[name].fadeIn + 1.2);
   });
 }

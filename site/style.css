@@ -57,6 +57,9 @@ a:hover { text-decoration-thickness: 2px; }
   min-height: 100svh;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Without this the column takes its width from the widest thing in it, and
+     the headline, which is sized from the column, only ever grows. */
+  grid-template-columns: minmax(0, 1fr);
   color: var(--ink);
   overflow: hidden;
 }
@@ -156,14 +159,18 @@ p { margin: 0 0 1em; }
 .numbers { margin-top: auto; padding-top: 8px; font: 13px/1.5 var(--mono); color: var(--muted); }
 .try {
   align-self: start;
-  margin-top: 12px;
   padding: 12px 16px;
-  border: 2px solid var(--text);
+  border: 2px solid currentColor;
   background: none;
-  color: var(--text);
+  color: inherit;
   cursor: pointer;
 }
 .try:hover { background: var(--text); color: var(--ground); }
+.look .try { margin-top: 12px; }
+
+/* Level with the download button beside it, border included. */
+.screen .try { padding: 16px 22px; }
+.screen .try:hover { background: var(--ink); color: var(--paper); }
 
 .cats {
   display: grid;
