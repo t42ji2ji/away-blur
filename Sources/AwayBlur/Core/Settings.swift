@@ -121,7 +121,7 @@ final class Preferences: ObservableObject {
         catAnimation = defaults.string(forKey: "catAnimation") ?? ""
         catSize = defaults.object(forKey: "catSize") as? Double ?? 0.20
         showsCaption = defaults.object(forKey: "showsCaption") as? Bool ?? true
-        catJitter = defaults.object(forKey: "catJitter") as? Double ?? 1
+        catJitter = defaults.object(forKey: "catJitter") as? Double ?? 0.5
         hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B
         hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient

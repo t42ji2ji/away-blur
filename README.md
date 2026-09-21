@@ -184,10 +184,13 @@ leap has somewhere to go. That means `Its size` in the panel sets the height of
 the *frame*, so the default is 20% of the screen rather than the old 12%, and
 the cat inside it comes out the same size it always was.
 
-It still never quite sits still: a boil of a pixel or so, rerolled three times
+It still never quite sits still: a boil of half a pixel, rerolled three times
 a second. The rate is the whole of it — every frame is noise, nine times a
-second is a buzz, three reads as a drawing that will not settle. `Its jitter`
-in the panel sets how far, and zero holds it perfectly still.
+second is a buzz, three reads as a drawing that will not settle. A whole pixel
+was the first default and it was too much: with the body finally locked, the
+boil was the only thing left moving, and at that size it read as the cat
+shifting about rather than as a line that will not settle. `Its jitter` in the
+panel sets how far, and zero holds it perfectly still.
 
 It is drawn dark on a light screen and light on a dark one, decided once from
 the picture's own average rather than per pixel, so the shape never breaks up

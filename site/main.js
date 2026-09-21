@@ -237,6 +237,8 @@ const LOOKS = {
   ambient: { blur: 14, dim: 0.12, wash: 0.35, fadeIn: 1.6, fadeOut: 0.8 },
 };
 
+const JITTER = 0.5;             // the app's own default: half an art pixel
+
 const frost = document.querySelector('.frost');
 const canvas = frost.querySelector('canvas');
 const ctx = canvas.getContext('2d');
@@ -328,7 +330,7 @@ function drawFrost(now) {
   if (!reduced) player.step(now, now - awaySince);
   if (!reduced && now - boiledAt >= 0.33) {
     boiledAt = now;
-    boil = [rand(-1, 1), rand(-1, 1)];
+    boil = [rand(-JITTER, JITTER), rand(-JITTER, JITTER)];
   }
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
