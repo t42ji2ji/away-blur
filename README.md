@@ -118,6 +118,15 @@ The build is signed with a self-signed `Away Blur Dev` identity from the login
 keychain. That is only so Screen Recording survives a rebuild: TCC remembers the
 grant against the signature, and an ad-hoc one changes every time.
 
+It is also a separate app: `com.dora.away-blur.dev`, called Away Blur (dev),
+answering to `awayblur-dev://` rather than `awayblur://`. The grant is
+remembered against the identifier *and* the signature, so a development build
+sharing the released build's identifier takes the grant off it every time it
+runs, and both spend their lives asking for it back. `blurctl` sends its
+commands to the development build whenever one is running. The preferences are
+not forked with the identifier: both read the `com.dora.away-blur` suite, so
+there is one set of sliders.
+
 Screen Recording has to be granted in System Settings → Privacy & Security →
 Screen & System Audio Recording. Nothing is written to disk or sent anywhere; the
 still lives in a Metal texture and dies when the blur clears.

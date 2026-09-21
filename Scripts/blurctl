@@ -1,9 +1,13 @@
 #!/bin/sh
-# Drives a running Away Blur from the shell, for tuning.
+# Drives a running Away Blur from the shell, for tuning. The development build
+# answers to its own scheme, so a tuning command goes to the build just made
+# rather than to whichever copy the system feels like launching.
+scheme=awayblur
+pgrep -f "dist/Away Blur.app/Contents/MacOS/AwayBlur" >/dev/null 2>&1 && scheme=awayblur-dev
 case "$1" in
-    on|off|toggle|sharp) open "awayblur://preview/$1" ;;
-    now)                  open "awayblur://blur/now" ;;
-    settings)      open "awayblur://settings/show" ;;
-    pressure)      open "awayblur://pressure/${2:-normal}" ;;
+    on|off|toggle|sharp) open "$scheme://preview/$1" ;;
+    now)                  open "$scheme://blur/now" ;;
+    settings)      open "$scheme://settings/show" ;;
+    pressure)      open "$scheme://pressure/${2:-normal}" ;;
     *) echo "usage: blurctl now|on|off|toggle|sharp|settings|pressure LEVEL" ; exit 1 ;;
 esac

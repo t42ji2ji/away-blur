@@ -110,7 +110,11 @@ final class Preferences: ObservableObject {
     @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
     @Published var ambient: LookSettings { didSet { store(ambient, "ambient") } }
 
-    private let defaults = UserDefaults.standard
+    /// Named rather than `.standard`, because the development build is a
+    /// separate bundle identifier — it has to be, or the two signatures fight
+    /// over one Screen Recording grant — and a separate identifier would
+    /// otherwise mean a separate set of sliders.
+    private let defaults = UserDefaults(suiteName: "com.dora.away-blur") ?? .standard
 
     init() {
         isEnabled = defaults.object(forKey: "enabled") as? Bool ?? true
