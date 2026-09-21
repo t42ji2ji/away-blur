@@ -312,7 +312,7 @@ pixel by pixel.
 
 ## Taking the screen now
 
-**⌃⌥⌘B** frosts it without waiting out the idle clock — registered through
+**⌥⇧⌘B** frosts it without waiting out the idle clock — registered through
 Carbon, because an `NSEvent` global monitor would cost an Accessibility
 permission to watch every keystroke on the machine in order to catch one. From
 there it behaves like the real thing: a hand on the keyboard takes it back,

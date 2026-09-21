@@ -395,9 +395,9 @@ mac.addEventListener('pointerdown', e => {
 mac.addEventListener('focusin', () => comeBack(seconds()));
 mac.addEventListener('focusout', () => goAway(lookName, seconds()));
 
-// ⌃⌥⌘B, as in the app: it puts the frost up, and a hand takes it back.
+// ⌥⇧⌘B, as in the app: it puts the frost up, and a hand takes it back.
 addEventListener('keydown', e => {
-  if (!(e.ctrlKey && e.altKey && e.metaKey && e.code === 'KeyB')) return;
+  if (!(e.altKey && e.shiftKey && e.metaKey && e.code === 'KeyB')) return;
   e.preventDefault();
   goAway(lookName, seconds(), 1.5);
 });
