@@ -236,7 +236,6 @@ const LOOKS = {
   privacy: { blur: 30, dim: 0.45, wash: 0, fadeIn: 0.45, fadeOut: 0.14 },
   ambient: { blur: 14, dim: 0.12, wash: 0.35, fadeIn: 1.6, fadeOut: 0.8 },
 };
-const IDLE = 5;
 
 const frost = document.querySelector('.frost');
 const canvas = frost.querySelector('canvas');
@@ -248,11 +247,10 @@ let look = LOOKS.ambient;
 let phase = 'clear';            // clear, in, out
 let progress = 0;
 let rampFrom = 0, rampAt = 0;
-let graceUntil = 0, awaySince = 0, clearedAt = -Infinity;
+let graceUntil = 0, awaySince = 0;
 let wash = [0, 0, 0], catInk = '#111111';
 let boil = [0, 0], boiledAt = 0;
 let line = { since: 0, turn: 0, lines: [] };
-let lastInput = seconds();
 let macInView = true;
 
 /** The wallpaper's average colour, and so which way the cat is drawn. */
@@ -355,16 +353,12 @@ function drawFrost(now) {
 }
 
 function tickFrost(now) {
-  if (phase === 'clear') {
-    if (macInView && now - lastInput > IDLE && now - clearedAt > 1) goAway(lookName, now);
-    return;
-  }
+  if (phase === 'clear') return;
   progress = phase === 'in'
     ? Math.min(1, rampFrom + (reduced ? 1 : (now - rampAt) / look.fadeIn))
     : Math.max(0, rampFrom - (reduced ? 1 : (now - rampAt) / look.fadeOut));
   if (phase === 'out' && progress === 0) {
     phase = 'clear';
-    clearedAt = now;
     frost.classList.remove('up');
     frost.style.backdropFilter = frost.style.webkitBackdropFilter = frost.style.background = '';
     return;
@@ -373,44 +367,52 @@ function tickFrost(now) {
   drawFrost(now);
 }
 
-// ⌃⌥⌘B, as in the app. A still pointer can still fire pointermove when what
-// is under it changes, so a move only counts if it went somewhere.
-let pointer = [NaN, NaN];
-const isHotkey = e => e.ctrlKey && e.altKey && e.metaKey && e.code === 'KeyB';
-
-function onInput(e) {
-  const now = seconds();
-  if (e.type === 'keydown' && isHotkey(e)) {
-    e.preventDefault();
-    goAway(lookName, now, 1.5, false);
-    return;
-  }
-  if (e.type === 'pointermove') {
-    const first = Number.isNaN(pointer[0]);
-    if (e.screenX === pointer[0] && e.screenY === pointer[1]) return;
-    pointer = [e.screenX, e.screenY];
-    // The first one only says where the pointer already was.
-    if (first) return;
-  }
-  lastInput = now;
-  if (now >= graceUntil) comeBack(now);
-}
-
-for (const type of ['pointermove', 'pointerdown', 'wheel', 'touchstart', 'scroll']) {
-  addEventListener(type, onInput, { passive: true });
-}
-addEventListener('keydown', onInput);
-
 const mac = document.querySelector('.mac');
+
+/** A hand on the Mac takes the frost down; nothing else on the page does. */
+function hand(e) {
+  if (e.pointerType === 'touch') return;
+  comeBack(seconds());
+}
+
+function gone(e) {
+  if (e.pointerType === 'touch') return;
+  goAway(lookName, seconds());
+}
+
+mac.addEventListener('pointerenter', hand);
+mac.addEventListener('pointermove', e => { if (seconds() >= graceUntil) hand(e); });
+mac.addEventListener('pointerleave', gone);
+// A finger cannot hover, and the pointer it makes dies the moment it lifts,
+// so touch gets a tap that turns the frost off and on.
+mac.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  phase === 'clear' ? goAway(lookName, seconds()) : comeBack(seconds());
+});
+// Reaching it by keyboard is the same arrival as reaching it by hand.
+mac.addEventListener('focusin', () => comeBack(seconds()));
+mac.addEventListener('focusout', () => goAway(lookName, seconds()));
+
+// ⌃⌥⌘B, as in the app: it puts the frost up, and a hand takes it back.
+addEventListener('keydown', e => {
+  if (!(e.ctrlKey && e.altKey && e.metaKey && e.code === 'KeyB')) return;
+  e.preventDefault();
+  goAway(lookName, seconds(), 1.5);
+});
 
 for (const button of document.querySelectorAll('.try')) {
   button.addEventListener('click', () => {
-    const name = button.dataset.look || lookName;
-    // The frost is on the Mac now, so a look tried from further down the page
-    // has to bring the Mac back into view before it will show anything.
-    const wait = macInView ? 0 : 700;
-    if (!macInView) mac.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => goAway(name, seconds(), LOOKS[name].fadeIn + 1.2), wait);
+    const name = button.dataset.look;
+    lookName = name;
+    const showIt = () => {
+      if (phase === 'clear') return goAway(name, seconds());
+      look = LOOKS[name];              // already frosted: change it under them
+      readScreen();
+      applyLook();
+    };
+    if (macInView) return showIt();
+    mac.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(showIt, 700);
   });
 }
 
@@ -511,6 +513,9 @@ setInterval(layout, 60_000);
 addEventListener('resize', layout);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', layout);
 
-// The page opens the way the app leaves a screen nobody is at.
-if (scrollY < 10 && !location.hash && !reduced) goAway('ambient', seconds(), 0, true);
+document.querySelector('.hint').textContent = matchMedia('(hover: hover)').matches
+  ? 'Move the pointer onto it.' : 'Tap it.';
+
+// It opens the way the app leaves a screen nobody is at.
+goAway('ambient', seconds(), 0, true);
 requestAnimationFrame(frame);
