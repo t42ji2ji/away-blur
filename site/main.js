@@ -253,16 +253,12 @@ let wash = [0, 0, 0], catInk = '#111111';
 let boil = [0, 0], boiledAt = 0;
 let line = { since: 0, turn: 0, lines: [] };
 let lastInput = seconds();
-let heroInView = true;
+let macInView = true;
 
-/** The screen's average colour, and so which way the cat is drawn. */
+/** The wallpaper's average colour, and so which way the cat is drawn. */
 function readScreen() {
-  const quadrants = ['--peri', '--peach', '--mauve', '--teal'].map(name => rgb(css(name)));
-  const weights = [0.42 * 0.56, 0.58 * 0.56, 0.42 * 0.44, 0.58 * 0.44];
-  const average = heroInView
-    ? [0, 1, 2].map(c => quadrants.reduce((sum, q, i) => sum + q[c] * weights[i], 0))
-    : rgb(css('--ground'));
-  wash = average.map(Math.round);
+  const average = rgb(css('--wall-average'));
+  wash = average;
   const light = (0.299 * average[0] + 0.587 * average[1] + 0.114 * average[2]) / 255;
   catInk = light * (1 - look.dim) > 0.45 ? css('--ink') : css('--paper');
 }
@@ -298,7 +294,10 @@ function comeBack(now) {
 }
 
 function applyLook() {
-  const blur = look.blur * progress ** 1.45;
+  // The radii are the app's, which are for a whole screen; this one is a few
+  // hundred pixels tall, and a blur that does not scale with it would eat the
+  // picture whole.
+  const blur = look.blur * (frost.clientHeight / 900) * progress ** 1.45;
   const dim = look.dim * progress ** 0.9;
   frost.style.webkitBackdropFilter = frost.style.backdropFilter = `blur(${blur.toFixed(2)}px)`;
   frost.style.background =
@@ -357,7 +356,7 @@ function drawFrost(now) {
 
 function tickFrost(now) {
   if (phase === 'clear') {
-    if (heroInView && now - lastInput > IDLE && now - clearedAt > 1) goAway(lookName, now);
+    if (macInView && now - lastInput > IDLE && now - clearedAt > 1) goAway(lookName, now);
     return;
   }
   progress = phase === 'in'
@@ -402,15 +401,21 @@ for (const type of ['pointermove', 'pointerdown', 'wheel', 'touchstart', 'scroll
 }
 addEventListener('keydown', onInput);
 
+const mac = document.querySelector('.mac');
+
 for (const button of document.querySelectorAll('.try')) {
   button.addEventListener('click', () => {
     const name = button.dataset.look || lookName;
-    goAway(name, seconds(), LOOKS[name].fadeIn + 1.2);
+    // The frost is on the Mac now, so a look tried from further down the page
+    // has to bring the Mac back into view before it will show anything.
+    const wait = macInView ? 0 : 700;
+    if (!macInView) mac.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => goAway(name, seconds(), LOOKS[name].fadeIn + 1.2), wait);
   });
 }
 
-new IntersectionObserver(([entry]) => { heroInView = entry.intersectionRatio >= 0.5; },
-  { threshold: [0, 0.5, 1] }).observe(document.querySelector('.screen'));
+new IntersectionObserver(([entry]) => { macInView = entry.intersectionRatio >= 0.5; },
+  { threshold: [0, 0.5, 1] }).observe(mac);
 
 // ---- Every animation, held ------------------------------------------------
 
@@ -471,19 +476,21 @@ function drawMenuCat() {
     }
   }
   const dpr = window.devicePixelRatio || 1;
-  const cell = Math.max(1, Math.round(dpr));
+  const bar = document.querySelector('.bar').clientHeight || 24;
+  const cell = Math.max(1, Math.round(bar * 0.72 / rows * dpr));
   view.width = columns * cell;
   view.height = rows * cell;
   view.style.width = `${columns * cell / dpr}px`;
   view.style.height = `${rows * cell / dpr}px`;
   const menuCtx = view.getContext('2d');
-  menuCtx.fillStyle = css('--ink');
+  menuCtx.fillStyle = '#ffffff';
   drawBits(menuCtx, cropped, columns, 0, 0, cell);
 }
 
 // ---- Running it -----------------------------------------------------------
 
 function layout() {
+  document.querySelector('.bar-clock').textContent = clockLine();
   setLetters();
   sizeHeld();
   drawMenuCat();
@@ -500,6 +507,7 @@ function frame() {
 }
 
 layout();
+setInterval(layout, 60_000);
 addEventListener('resize', layout);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', layout);
 

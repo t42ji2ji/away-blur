@@ -20,26 +20,61 @@
 </head>
 <body>
 
-<header class="screen" id="top">
-  <div class="field" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  <nav class="menubar">
-    <a class="app-name" href="#top">Away Blur</a>
-    <span class="menu-right">
+<header class="hero" id="top">
+  <nav class="nav">
+    <a class="wordmark" href="#top">Away Blur</a>
+    <span class="nav-right">
       <a href="#install">Install</a>
       <a href="https://github.com/t42ji2ji/away-blur">GitHub</a>
-      <canvas class="menucat" aria-hidden="true"></canvas>
     </span>
   </nav>
-  <div class="pitch">
-    <h1 class="px" data-fit>Away Blur</h1>
-    <p class="lead">Frosts the screen when you stop using the Mac, and clears it the moment a hand comes back.</p>
-    <div class="get">
-      <a class="download" href="https://github.com/t42ji2ji/away-blur/releases/latest/download/Away-Blur.dmg"><span class="px" data-cell="3">Download</span></a>
-      <button class="try" data-look="privacy"><span class="px" data-cell="3">Blur now</span></button>
-      <p class="meta">macOS 14 or later<br>Apple silicon and Intel</p>
+
+  <div class="hero-grid">
+    <div class="pitch">
+      <h1 class="px" data-fit>Away Blur</h1>
+      <p class="lead">Frosts the screen when you stop using the Mac, and clears it the moment a hand comes back.</p>
+      <div class="get">
+        <a class="download" href="https://github.com/t42ji2ji/away-blur/releases/latest/download/Away-Blur.dmg"><span class="px" data-cell="3">Download</span></a>
+        <button class="try" data-look="privacy"><span class="px" data-cell="3">Blur now</span></button>
+      </div>
+      <p class="meta">macOS 14 or later · Apple silicon and Intel</p>
     </div>
+
+    <figure class="mac">
+      <div class="lid">
+        <div class="glass">
+          <div class="desktop">
+            <div class="bar">
+              <span class="bar-left"><b>Xcode</b><span>File</span><span>Edit</span><span>View</span></span>
+              <span class="bar-right"><canvas class="menucat" aria-hidden="true"></canvas><span class="bar-clock"></span></span>
+            </div>
+            <div class="win win-notes">
+              <div class="title"><i></i><i></i><i></i><span>notes</span></div>
+              <p>rent due friday</p>
+              <p>call the clinic back</p>
+              <p>bank: 8812 4471 0093</p>
+              <p>renew the passport</p>
+            </div>
+            <div class="win win-code">
+              <div class="title"><i></i><i></i><i></i><span>BlurController.swift</span></div>
+              <pre><code><span class="k">private func</span> <span class="f">updateShake</span>() {
+  <span class="k">let</span> now = CACurrentMediaTime()
+  <span class="k">if</span> now - boiledAt &gt;= boilInterval {
+    boiledAt = now
+    <span class="k">let</span> amount = preferences.catJitter
+    boilOffset = amount &lt;= 0 ? .zero
+      : CGPoint(x: .random(in: -amount...amount),
+                y: .random(in: -amount...amount))
+  }</code></pre>
+            </div>
+          </div>
+          <div class="frost" aria-hidden="true"><canvas></canvas></div>
+        </div>
+      </div>
+      <div class="hinge"></div>
+      <figcaption class="hint">Keep still for five seconds.</figcaption>
+    </figure>
   </div>
-  <p class="hint">Keep still for five seconds.</p>
 </header>
 
 <main>
@@ -114,6 +149,5 @@
   <p>The source is on <a href="https://github.com/t42ji2ji/away-blur">GitHub</a>. The blur is the technique <a href="https://github.com/ninobc/mac-duo">mac-duo</a> by Nino Bouchedid uses for its fold.</p>
 </footer>
 
-<div class="frost" aria-hidden="true"><canvas></canvas></div>
 </body>
 </html>

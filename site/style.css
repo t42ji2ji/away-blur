@@ -1,11 +1,8 @@
-/* The four colours are the icon's, before the blur ran them together. */
 :root {
-  --peri: #7489d6;
-  --peach: #d39a80;
-  --mauve: #b8739a;
-  --teal: #6aa9aa;
   --ink: #111111;
   --paper: #eceef2;
+  /* The wallpaper's own average, which the ambient look washes towards. */
+  --wall-average: #8f5277;
 
   --ground: var(--paper);
   --text: #15161a;
@@ -49,88 +46,177 @@ a:hover { text-decoration-thickness: 2px; }
   clip: rect(0 0 0 0); white-space: nowrap;
 }
 
-/* ---- The screen ------------------------------------------------------ */
+/* ---- The Mac in the hero --------------------------------------------- */
 
-.screen {
-  position: relative;
-  isolation: isolate;
+.hero {
   min-height: 100svh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  /* Without this the column takes its width from the widest thing in it, and
-     the headline, which is sized from the column, only ever grows. */
-  grid-template-columns: minmax(0, 1fr);
-  color: var(--ink);
-  overflow: hidden;
+  grid-template-rows: auto 1fr;
+  padding-bottom: 40px;
 }
 
-.field {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  display: grid;
-  grid-template-columns: 42fr 58fr;
-  grid-template-rows: 56fr 44fr;
-}
-.field i:nth-child(1) { background: var(--peri); }
-.field i:nth-child(2) { background: var(--peach); }
-.field i:nth-child(3) { background: var(--mauve); }
-.field i:nth-child(4) { background: var(--teal); }
-
-.menubar {
+.nav {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  height: 32px;
-  padding: 0 16px;
-  font: 13px/1 var(--sans);
-  background: rgb(255 255 255 / 0.42);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  backdrop-filter: blur(24px) saturate(1.4);
+  align-items: center;
+  padding: 20px clamp(16px, 4vw, 48px);
+  font: 15px/1 var(--sans);
 }
-.menubar a { text-decoration: none; }
-.menubar a:hover { text-decoration: underline; }
-.app-name { font-weight: 700; }
-.menu-right { display: flex; align-items: center; gap: 20px; }
-.menucat { display: block; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+.wordmark { font-weight: 600; }
+.nav-right { display: flex; gap: 22px; }
 
-.pitch {
-  align-self: end;
+.hero-grid {
+  align-self: center;
   width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 48px);
+  padding: 24px clamp(16px, 4vw, 48px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
 }
 
 .pitch h1 { margin: 0; }
 
 .lead {
-  max-width: 21em;
-  margin: 0.9em 0 1.4em;
-  font-size: clamp(23px, 2.7vw, 34px);
-  line-height: 1.28;
+  max-width: 19em;
+  margin: 0.8em 0 1.3em;
+  font-size: clamp(21px, 2vw, 27px);
+  line-height: 1.3;
 }
 
-.get { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.get { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 
 .download {
   display: inline-block;
   padding: 18px 24px;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--text);
+  color: var(--ground);
   transition: transform 0.08s, box-shadow 0.08s;
 }
-.download:hover { transform: translate(-3px, -3px); box-shadow: 3px 3px 0 var(--paper); }
+.download:hover { transform: translate(-3px, -3px); box-shadow: 3px 3px 0 var(--text); }
 .download:active { transform: none; box-shadow: none; }
 
-.meta { margin: 0; font: 13px/1.5 var(--mono); }
-.screen .meta { opacity: 0.8; }
+.meta { margin: 16px 0 0; font: 13px/1.5 var(--mono); color: var(--muted); }
+
+/* The lid, the hinge, and a screen with something on it worth covering. */
+.mac { width: 100%; max-width: 640px; margin: 0; justify-self: end; }
+
+.lid {
+  padding: 9px 9px 11px;
+  background: linear-gradient(#43464c, #24262a);
+  border-radius: 16px;
+  box-shadow: 0 34px 60px -26px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+.glass {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #101014;
+  container-type: inline-size;
+  isolation: isolate;
+}
+
+.hinge {
+  width: 112%;
+  height: 13px;
+  margin: 0 0 0 -6%;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(#cfd3d9, #9aa1aa);
+  box-shadow: 0 14px 22px -14px rgb(0 0 0 / 0.6);
+}
+.hinge::after {
+  content: "";
+  display: block;
+  width: 13%;
+  height: 5px;
+  margin: 0 auto;
+  border-radius: 0 0 7px 7px;
+  background: rgb(0 0 0 / 0.17);
+}
+
+.desktop {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #1b2a6b, #6b3f9e 38%, #c8517f 72%, #ef8f56);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.8cqw;
+  padding: 0 1.4cqw;
+  font: 500 clamp(7px, 1.7cqw, 12px)/1 var(--sans);
+  color: #fff;
+  background: rgb(255 255 255 / 0.14);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.bar-left, .bar-right { display: flex; align-items: center; gap: 1.6cqw; }
+.bar-left b { font-weight: 700; }
+.bar-left span { opacity: 0.85; }
+.menucat { display: block; }
+
+.win {
+  position: absolute;
+  border-radius: 1.2cqw;
+  overflow: hidden;
+  box-shadow: 0 3cqw 4cqw -2cqw rgb(0 0 0 / 0.5);
+}
+.win .title {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqw;
+  padding: 1cqw 1.4cqw;
+  font: clamp(6px, 1.5cqw, 11px)/1 var(--sans);
+}
+.win .title i { width: 1.2cqw; height: 1.2cqw; border-radius: 50%; background: #ff5f57; }
+.win .title i:nth-child(2) { background: #febc2e; }
+.win .title i:nth-child(3) { background: #28c840; }
+.win .title span { margin-left: 0.8cqw; opacity: 0.7; }
+
+.win-code {
+  left: 6%;
+  top: 27%;
+  width: 63%;
+  background: rgb(26 26 32 / 0.93);
+  color: #d7d9e0;
+}
+.win-code .title { background: rgb(255 255 255 / 0.07); }
+.win-code pre {
+  margin: 0;
+  padding: 1.4cqw 1.8cqw 2cqw;
+  font: clamp(5px, 1.35cqw, 10px)/1.55 var(--mono);
+  white-space: pre;
+}
+.win-code .k { color: #ff7ab2; }
+.win-code .f { color: #7ad0ff; }
+
+.win-notes {
+  z-index: 1;                 /* the front window has to be a whole window */
+  right: 5%;
+  top: 13%;
+  width: 33%;
+  background: rgb(252 250 244 / 0.96);
+  color: #26241f;
+}
+.win-notes .title { background: rgb(0 0 0 / 0.06); }
+.win-notes p {
+  margin: 0;
+  padding: 0.7cqw 1.6cqw;
+  font: clamp(6px, 1.5cqw, 11px)/1.5 var(--serif);
+}
 
 .hint {
-  justify-self: end;
-  margin: 0;
-  padding: 28px clamp(16px, 4vw, 48px);
+  margin: 16px 0 0;
   font: 13px/1 var(--mono);
-  opacity: 0.7;
+  color: var(--muted);
+  text-align: center;
 }
 
 /* ---- The rest -------------------------------------------------------- */
@@ -169,8 +255,7 @@ p { margin: 0 0 1em; }
 .look .try { margin-top: 12px; }
 
 /* Level with the download button beside it, border included. */
-.screen .try { padding: 16px 22px; }
-.screen .try:hover { background: var(--ink); color: var(--paper); }
+.hero .try { padding: 16px 22px; }
 
 .cats {
   display: grid;
@@ -212,18 +297,22 @@ footer p { max-width: 40em; margin: 0; }
 /* ---- The frost ------------------------------------------------------- */
 
 .frost {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 2;
   visibility: hidden;
   pointer-events: none;
 }
-.frost.up { visibility: visible; pointer-events: auto; }
+.frost.up { visibility: visible; }
 .frost canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+  .mac { justify-self: stretch; max-width: none; }
+  .lead { max-width: 24em; }
+}
 
 @media (max-width: 760px) {
   .trio, .looks { grid-template-columns: 1fr; }
-  .menu-right a:first-child { display: none; }
-  .hint { justify-self: start; }
   section { padding: 64px 0; }
 }
