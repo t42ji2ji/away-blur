@@ -41,7 +41,13 @@ final class BlurController {
     private var captionTurn = 0
     private var captionSince: CFTimeInterval = 0
     private var awaySince: CFTimeInterval = 0
-    private var lastWaiting: String?
+    /// The sessions as of the last rotation, and their dots. Which ones were
+    /// already waiting is kept so the cat only bristles at a new one; nil
+    /// until the first look, so whatever was waiting before you left does
+    /// not count as news.
+    private var sessions: [Sessions.Session] = []
+    private var dots: MTLTexture?
+    private var seenWaiting: Set<String>?
 
     /// A shake, in cat pixels, decaying on k squared so it starts hard and
     /// settles rather than rattling evenly to the end. The offset is rounded
@@ -271,7 +277,9 @@ final class BlurController {
         guard !overlays.isEmpty else { return }
         awaySince = CACurrentMediaTime()
         shakeUntil = 0
-        lastWaiting = nil
+        seenWaiting = nil
+        sessions = []
+        dots = nil
         captionSince = 0
         captionTurn = 0
         captionLines = []
@@ -350,17 +358,23 @@ final class BlurController {
         if captionSince == 0 || now - captionSince > cycle {
             if captionSince != 0 { captionTurn += 1 }
             captionSince = now
+            let found = Sessions.all()
+            if found.map(\.state) != sessions.map(\.state) {
+                dots = renderer.makeDots(found.map(\.state))
+            }
+            sessions = found
             captionLines = Caption.lines(awayFor: now - awaySince,
-                                         includingWork: preferences.look == .ambient)
-            // Something over there started waiting on you while you were gone.
-            // The shake is the part you notice from across a room; the line
-            // only tells you which one once you have looked.
-            let waiting = preferences.look == .ambient ? Sessions.waiting() : nil
-            if let waiting, waiting != lastWaiting {
+                                         includingWork: preferences.look == .ambient,
+                                         sessions: sessions)
+            // Something over there finished and is waiting on you while you
+            // were gone. The shake is the part you notice from across a room;
+            // the line only tells you which one once you have looked.
+            let waiting = Set(sessions.filter { $0.state == .waiting }.map(\.id))
+            if let seen = seenWaiting, preferences.look == .ambient, !waiting.subtracting(seen).isEmpty {
                 player.play("bristle", at: now)
                 shake(2.2, over: 0.8)
             }
-            lastWaiting = waiting
+            seenWaiting = waiting
         }
         guard !captionLines.isEmpty else { return }
         let line = captionLines[captionTurn % captionLines.count]
@@ -398,6 +412,27 @@ final class BlurController {
             texture: caption,
             origin: CGPoint(x: ((size.width - span.width) / 2).rounded(),
                             y: (catBottom + catCell * 8.0).rounded()),
+            cell: cell,
+            alpha: ease(progress))
+    }
+
+    /// A row of dots under the line, one per session. They say only that
+    /// something is working or done, never what, so both looks show them.
+    private func dotsPlacement(on overlay: Overlay, progress: Double) -> BlurRenderer.Stamp? {
+        guard preferences.showsCaption, let dots else { return nil }
+        let size = overlay.layer.drawableSize
+        let catCell = (size.height * preferences.catSize / Double(Cat.height)).rounded(.down)
+        let cell = max(2, (catCell * 0.45).rounded())
+        let slack = Double(Cat.height - 1 - Cat.baseline) * max(2, catCell)
+        let catBottom = preferences.showsCat
+            ? (size.height + Double(Cat.height) * max(2, catCell)) / 2 - slack
+            : size.height / 2
+        let lineBottom = catBottom + catCell * 8.0 + Double(PixelFont.height) * cell
+        let width = Double(dots.width) * cell
+        return BlurRenderer.Stamp(
+            texture: dots,
+            origin: CGPoint(x: ((size.width - width) / 2).rounded(),
+                            y: (lineBottom + cell * 5).rounded()),
             cell: cell,
             alpha: ease(progress))
     }
@@ -449,6 +484,7 @@ final class BlurController {
                             maxRadius: settings.blurRadius, time: 0,
                             stamp: placement(on: overlay, progress: shown),
                             caption: captionPlacement(on: overlay, progress: shown),
+                            dots: dotsPlacement(on: overlay, progress: shown),
                             onScreen: arrived)
         }
     }

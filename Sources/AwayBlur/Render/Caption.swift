@@ -10,13 +10,14 @@ enum Caption {
     /// The lines worth reading from across a room, in the order they come
     /// round. Work is left out of the privacy look on purpose: a line naming
     /// what you are building rather defeats a screen you made unreadable.
-    static func lines(awayFor seconds: TimeInterval, includingWork: Bool) -> [String] {
+    static func lines(awayFor seconds: TimeInterval, includingWork: Bool,
+                      sessions: [Sessions.Session] = []) -> [String] {
         var lines = [away(seconds), clock()]
         if let power = battery() { lines.append(power) }
         if let busyness = load() { lines.append(busyness) }
         if let filled = memory() { lines.append(filled) }
         if includingWork {
-            if let waiting = Sessions.waiting() { lines.append(waiting) }
+            if let waiting = Sessions.line(for: sessions) { lines.append(waiting) }
             if let busy = busy() { lines.append(busy) }
         }
         lines.append(chatter.randomElement() ?? "NOBODY HERE")
@@ -202,6 +203,32 @@ extension BlurRenderer {
         made.bytes.withUnsafeBytes { raw in
             texture.replace(region: MTLRegionMake2D(0, 0, made.width, made.height),
                             mipmapLevel: 0, withBytes: raw.baseAddress!, bytesPerRow: made.width)
+        }
+        return texture
+    }
+
+    /// One square per session, three art pixels a side with two between:
+    /// orange while it works, green once it is waiting on you.
+    func makeDots(_ states: [Sessions.State]) -> MTLTexture? {
+        guard !states.isEmpty else { return nil }
+        let width = states.count * 5 - 2, height = 3
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        for (index, state) in states.enumerated() {
+            let colour: [UInt8] = state == .working ? [255, 149, 0, 255] : [52, 199, 89, 255]
+            for row in 0..<height {
+                for column in 0..<3 {
+                    let at = (row * width + index * 5 + column) * 4
+                    bytes.replaceSubrange(at..<at + 4, with: colour)
+                }
+            }
+        }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .rgba8Unorm, width: width, height: height, mipmapped: false)
+        descriptor.usage = [.shaderRead]
+        guard let texture = device.makeTexture(descriptor: descriptor) else { return nil }
+        bytes.withUnsafeBytes { raw in
+            texture.replace(region: MTLRegionMake2D(0, 0, width, height),
+                            mipmapLevel: 0, withBytes: raw.baseAddress!, bytesPerRow: width * 4)
         }
         return texture
     }

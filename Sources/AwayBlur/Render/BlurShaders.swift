@@ -20,6 +20,8 @@ enum BlurShaders {
         float4 grid;    // columns, rows
         float4 caption; // origin (px), cell size (px), alpha
         float4 line;    // columns, rows
+        float4 dots;    // origin (px), cell size (px), alpha
+        float4 row;     // columns, rows
     };
 
     // A one-bit stamp laid on the picture: whole pixels per cell, whole pixels
@@ -32,6 +34,18 @@ enum BlurShaders {
         if (any(local < 0.0) || any(local >= span)) { return colour; }
         float ink = art.sample(blocky, local / span).r;
         return mix(colour, tone, ink * place.w);
+    }
+
+    // The same, but the art brings its own colour: rgb is the colour, a is
+    // the ink.
+    static inline float3 layColour(float3 colour, float2 position, float4 place, float2 grid,
+                                   texture2d<float> art, sampler blocky) {
+        if (place.w <= 0.001) { return colour; }
+        float2 span = grid * place.z;
+        float2 local = position - place.xy;
+        if (any(local < 0.0) || any(local >= span)) { return colour; }
+        float4 ink = art.sample(blocky, local / span);
+        return mix(colour, ink.rgb, ink.a * place.w);
     }
 
     vertex float4 fullScreenVertex(uint id [[vertex_id]]) {
@@ -47,7 +61,8 @@ enum BlurShaders {
                                  constant Uniforms &u [[buffer(0)]],
                                  texture2d<float> picture [[texture(0)]],
                                  texture2d<float> stamp [[texture(1)]],
-                                 texture2d<float> caption [[texture(2)]]) {
+                                 texture2d<float> caption [[texture(2)]],
+                                 texture2d<float> dots [[texture(3)]]) {
         constexpr sampler smooth(filter::linear, mip_filter::linear, address::clamp_to_edge);
         // Nearest, always. A pixel is a square and it stays a square.
         constexpr sampler blocky(filter::nearest, address::clamp_to_edge);
@@ -104,6 +119,7 @@ enum BlurShaders {
             colour = lay(colour, position.xy, u.stamp, u.grid.xy, stamp, blocky, tone);
             colour = lay(colour, position.xy, u.caption, u.line.xy, caption, blocky, tone);
         }
+        colour = layColour(colour, position.xy, u.dots, u.row.xy, dots, blocky);
 
         // Grain, so a wide dark gradient does not band on an 8-bit panel.
         if (grain > 0.0005) {

@@ -206,7 +206,9 @@ extension Diagnostics {
         Thread.sleep(forTimeInterval: 1)
         print("privacy:")
         for line in Caption.lines(awayFor: 8 * 60, includingWork: false) { print("  \(line)") }
-        print("cmux: \(Sessions.open()) panels, waiting: \(Sessions.waiting() ?? "—")")
+        let sessions = Sessions.all()
+        for session in sessions { print("session: \(session.name) \(session.state)") }
+        print("waiting: \(Sessions.line(for: sessions) ?? "—")")
     }
 
     /// `AwayBlur --scene out.png` — the cat and a line, at the size they are
@@ -239,11 +241,20 @@ extension Diagnostics {
                                 - Double(Cat.height - 1 - Cat.baseline) * catCell
                                 + catCell * 8.0).rounded()),
             cell: lineCell, alpha: 1)
+        // Two working and one waiting, the way the session dots sit under it.
+        let row = renderer.makeDots([.working, .working, .waiting])
+        let dots = row.map { row in
+            BlurRenderer.Stamp(
+                texture: row,
+                origin: CGPoint(x: ((Double(width) - Double(row.width) * lineCell) / 2).rounded(),
+                                y: (line.origin.y + Double(PixelFont.height + 5) * lineCell).rounded()),
+                cell: lineCell, alpha: 1)
+        }
 
         guard let image = renderer.renderToImage(picture: picture,
                                                  size: CGSize(width: width, height: height),
                                                  look: FrameLook(blur: 0), maxRadius: 240,
-                                                 stamp: placed, caption: line),
+                                                 stamp: placed, caption: line, dots: dots),
               Offscreen.write(image, to: URL(fileURLWithPath: path)) else {
             print("could not write \(path)")
             return
