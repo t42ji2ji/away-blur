@@ -26,10 +26,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/AwayBlur"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-# The hardened runtime is what notarization asks for, and under it the camera
-# is refused unless the entitlement says otherwise.
+# The hardened runtime is what notarization asks for.
 codesign --force --options runtime --timestamp \
-    --entitlements Resources/AwayBlur.entitlements \
     --sign "$IDENTITY" --identifier com.dora.away-blur "$APP"
 # The app is notarized on its own first, so the ticket can be stapled into the
 # bundle. Stapling only the DMG leaves the copy in Applications asking Apple

@@ -146,43 +146,6 @@ extension Diagnostics {
 
 extension Diagnostics {
 
-    /// `AwayBlur --camera` — open the camera once and say what it saw.
-    static func lookThroughCamera() {
-        setvbuf(stdout, nil, _IONBF, 0)
-        if !FaceCheck.isAuthorized {
-            guard !FaceCheck.isDenied else {
-                print("camera access denied — System Settings › Privacy & Security › Camera")
-                return
-            }
-            print("asking for camera access…")
-            let asking = DispatchSemaphore(value: 0)
-            var granted = false
-            Task { granted = await FaceCheck.requestAccess(); asking.signal() }
-            while asking.wait(timeout: .now()) == .timedOut {
-                RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
-            }
-            guard granted else { print("camera access refused"); return }
-        }
-        let check = FaceCheck()
-        let done = DispatchSemaphore(value: 0)
-        var seen = false
-        let started = Date()
-        Task {
-            seen = await check.look()
-            done.signal()
-        }
-        while done.wait(timeout: .now()) == .timedOut {
-            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
-        }
-        let elapsed = Date().timeIntervalSince(started)
-        print(String(format: "%@ — %d frames at %.0fx%.0f in %.2fs",
-                     seen ? "face found" : "nobody in front of the camera",
-                     check.framesSeen, check.frameSize.width, check.frameSize.height, elapsed))
-    }
-}
-
-extension Diagnostics {
-
     /// `AwayBlur --cat out.png` — every animation, one row each, every frame
     /// at the size it is actually drawn. This is the sheet to look at after
     /// replacing any art in `Art/`.

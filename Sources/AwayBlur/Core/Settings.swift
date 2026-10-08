@@ -82,11 +82,6 @@ final class Preferences: ObservableObject {
     /// with what the screen turns into afterwards.
     @Published var idleDelay: Double { didSet { defaults.set(idleDelay, forKey: "idleDelay") } }
     @Published var look: Look { didSet { store(look.rawValue, "look") } }
-    /// Look through the camera before blurring. Off unless asked for: it costs
-    /// a camera permission and the green light every time it checks.
-    @Published var usesCamera: Bool { didSet { defaults.set(usesCamera, forKey: "usesCamera") } }
-    /// How long a face holds the screen before the camera is asked again.
-    @Published var cameraRecheck: Double { didSet { defaults.set(cameraRecheck, forKey: "cameraRecheck") } }
     @Published var hotkeyCode: Int { didSet { defaults.set(hotkeyCode, forKey: "hotkeyCode"); onHotkeyChange?() } }
     @Published var hotkeyModifiers: Int { didSet { defaults.set(hotkeyModifiers, forKey: "hotkeyModifiers"); onHotkeyChange?() } }
     /// When the key last actually arrived. Registering one proves nothing:
@@ -119,8 +114,6 @@ final class Preferences: ObservableObject {
     init() {
         isEnabled = defaults.object(forKey: "enabled") as? Bool ?? true
         idleDelay = defaults.object(forKey: "idleDelay") as? Double ?? 90
-        usesCamera = defaults.object(forKey: "usesCamera") as? Bool ?? false
-        cameraRecheck = defaults.object(forKey: "cameraRecheck") as? Double ?? 60
         showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
         catAnimation = defaults.string(forKey: "catAnimation") ?? ""
         catSize = defaults.object(forKey: "catSize") as? Double ?? 0.20

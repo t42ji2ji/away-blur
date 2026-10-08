@@ -61,20 +61,11 @@ private struct SettingsView: View {
             // Everything that decides you are gone. None of it belongs to a look.
             Section {
                 row("Idle for", $preferences.idleDelay, 5...600, "%.0f s")
-                Toggle("Check the camera first", isOn: $preferences.usesCamera)
-                if preferences.usesCamera {
-                    row("A face buys", $preferences.cameraRecheck, 15...300, "%.0f s")
-                        .disabled(FaceCheck.isDenied)
-                }
                 LabeledContent("Blur now") { ShortcutRecorder(preferences: preferences) }
             } header: {
                 Text("When to blur")
             } footer: {
                 VStack(alignment: .leading, spacing: 3) {
-                    if preferences.usesCamera, FaceCheck.isDenied {
-                        Label("Camera access is off in System Settings.", systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
-                    }
                     Text(holders.isEmpty
                          ? "Nothing is holding the display awake."
                          : "\(holders.joined(separator: ", ")) is holding the display awake — it will not blur.")

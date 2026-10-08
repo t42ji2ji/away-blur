@@ -234,7 +234,7 @@ h3 { margin: 0 0 0.4em; font-size: 21px; font-weight: 500; line-height: 1.3; }
 p { margin: 0 0 1em; }
 .after { margin: 36px 0 0; color: var(--muted); }
 
-.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.trio { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
 .trio p { font-size: 18px; }
 
 .looks { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }

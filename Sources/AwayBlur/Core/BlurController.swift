@@ -29,7 +29,6 @@ final class BlurController {
     /// few hundred ScreenCaptureKit calls a minute.
     private var retryAfter: CFTimeInterval = 0
     private var permission = (checked: CFTimeInterval(0), granted: false)
-    private let camera = FaceCheck()
     /// Every frame of every animation, built on the first blur and kept.
     private var frames: [MTLTexture] = []
     /// What the cat is doing. Stepped off wall time rather than off display
@@ -90,7 +89,6 @@ final class BlurController {
     private static let arriving: CFTimeInterval = 0.65
     private static let holding: CFTimeInterval = 5.2
     private static let leaving: CFTimeInterval = 0.45
-    private(set) var lastFaceSeen: CFTimeInterval = 0
     private var watchers: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
 
@@ -231,21 +229,6 @@ final class BlurController {
         guard !screens.isEmpty else { isCapturing = false; return }
 
         Task { [weak self] in
-            // The idle clock has run out; before taking the screen, see whether
-            // anyone is actually sitting there. A face only ever holds the blur
-            // back — never causes it — so every failure here reads as nobody.
-            if let self, self.preferences.usesCamera, !self.isPreviewing,
-               CACurrentMediaTime() - self.lastFaceSeen > self.preferences.cameraRecheck {
-                let seen = await self.camera.look()
-                self.lastFaceSeen = seen ? CACurrentMediaTime() : 0
-                if seen {
-                    self.retryAfter = CACurrentMediaTime() + self.preferences.cameraRecheck
-                    self.isCapturing = false
-                    FileLog.write("camera saw a face; not asking again for \(Int(self.preferences.cameraRecheck))s")
-                    return
-                }
-                FileLog.write("camera saw nobody")
-            }
             var pictures: [CGDirectDisplayID: BlurRenderer.Picture] = [:]
             for (_, id) in screens {
                 guard let image = await ScreenSnapshot.capture(display: id) else { continue }
@@ -299,6 +282,8 @@ final class BlurController {
         phase = .held
         drawFrame(revealing: true)
         overlays.forEach { $0.show() }
+        // Not while tuning: the sliders are dragged with it.
+        if !isTuning() { Cursor.hide() }
         schedulePoll(interval: 0.06)
     }
 
@@ -332,6 +317,8 @@ final class BlurController {
             progress = min(1, progress + delta / max(settings.fadeIn, 0.02))
             if progress >= 1 { phase = .held }
         case .falling:
+            // Back as soon as the hand is, not after the fade.
+            Cursor.show()
             progress = max(0, progress - delta / max(settings.fadeOut, 0.02))
             if progress <= 0 {
                 finishHiding()
@@ -479,6 +466,7 @@ final class BlurController {
         stopLink()
         overlays.forEach { $0.close() }
         overlays.removeAll()
+        Cursor.show()
         // The frames outlive the overlay on purpose: they are 169KB and they
         // are the same 169KB every time the screen goes.
         caption = nil
