@@ -22,7 +22,7 @@ enum Look: String, Codable, CaseIterable {
 }
 
 /// Everything one look is made of. Radius is in pixels at full strength.
-struct LookSettings: Codable, Equatable {
+struct LookSettings: Equatable {
     var blurRadius: Double
     /// How far the picture sinks towards black, 0…1.
     var dim: Double
@@ -50,6 +50,19 @@ struct LookSettings: Codable, Equatable {
         case .privacy: return .privacyDefaults
         case .ambient: return .ambientDefaults
         }
+    }
+
+    /// One strength, 1…5, in place of every number above. Three is the look
+    /// as it is; the others scale its blur, and its dim and wash with it.
+    /// Grain and timing belong to the look, not to how strong it is.
+    static func look(_ look: Look, strength: Int) -> LookSettings {
+        let index = min(max(strength, 1), 5) - 1
+        var settings = defaults(for: look)
+        settings.blurRadius *= [0.4, 0.65, 1, 1.5, 2.1][index]
+        let tint = [0.4, 0.7, 1, 1.25, 1.5][index]
+        settings.dim = min(settings.dim * tint, 0.85)
+        settings.wash = min(settings.wash * tint, 0.8)
+        return settings
     }
 }
 
@@ -102,8 +115,8 @@ final class Preferences: ObservableObject {
     @Published var catJitter: Double { didSet { defaults.set(catJitter, forKey: "catJitter") } }
 
     var onHotkeyChange: (() -> Void)?
-    @Published var privacy: LookSettings { didSet { store(privacy, "privacy") } }
-    @Published var ambient: LookSettings { didSet { store(ambient, "ambient") } }
+    /// How strong the look is, 1…5. One number for both looks.
+    @Published var strength: Int { didSet { defaults.set(strength, forKey: "strength") } }
 
     /// Named rather than `.standard`, because the development build is a
     /// separate bundle identifier — it has to be, or the two signatures fight
@@ -122,44 +135,12 @@ final class Preferences: ObservableObject {
         hotkeyCode = defaults.object(forKey: "hotkeyCode") as? Int ?? 11 // B
         hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient
-        privacy = Preferences.read("privacy", defaults) ?? .privacyDefaults
-        ambient = Preferences.read("ambient", defaults) ?? .ambientDefaults
+        strength = defaults.object(forKey: "strength") as? Int ?? 3
     }
 
-    /// The settings for the look in use, readable and writable.
-    var current: LookSettings {
-        get { self[look] }
-        set { self[look] = newValue }
-    }
-
-    subscript(look: Look) -> LookSettings {
-        get {
-            switch look {
-            case .privacy: return privacy
-            case .ambient: return ambient
-            }
-        }
-        set {
-            switch look {
-            case .privacy: privacy = newValue
-            case .ambient: ambient = newValue
-            }
-        }
-    }
-
-    func resetCurrent() {
-        current = .defaults(for: look)
-    }
-
-    private static func read(_ key: String, _ defaults: UserDefaults) -> LookSettings? {
-        guard let data = defaults.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(LookSettings.self, from: data)
-    }
+    /// The settings for the look in use.
+    var current: LookSettings { .look(look, strength: strength) }
 
     private func store(_ value: Bool, _ key: String) { defaults.set(value, forKey: key) }
     private func store(_ value: String, _ key: String) { defaults.set(value, forKey: key) }
-    private func store(_ value: LookSettings, _ key: String) {
-        guard let data = try? JSONEncoder().encode(value) else { return }
-        defaults.set(data, forKey: key)
-    }
 }

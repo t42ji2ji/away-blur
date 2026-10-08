@@ -74,8 +74,9 @@ Nothing is readable.
 **Ambient** — 55px blur, barely dimmed, washed 35% towards the picture's own
 average colour, 1.6s in and 0.8s out. You can still tell what is under there.
 
-Switch in the menu bar. Each look keeps its own numbers, except the idle delay,
-which answers whether anyone is there and so belongs to neither.
+Switch in the menu bar. One strength, 1 to 5, turns either look up or down:
+3 is the numbers above, and the others scale the blur, and the dim and wash
+with it. Grain and timing stay the look's own.
 
 ## Build
 
@@ -312,8 +313,8 @@ after a four second grace long enough to let go of the keys and stand up.
 ## Tuning
 
 Menu bar → Settings… opens a panel that floats *above* the overlay, so the
-sliders stay usable while the screen behind them is frosted. Turn on **Hold the
-blur up while I tune** and every slider takes effect on the next frame.
+controls stay usable while the screen behind them is frosted. Turn on **Hold the
+blur up while I tune** and every change takes effect on the next frame.
 
 ## A preview is never a mode you can get stuck in
 

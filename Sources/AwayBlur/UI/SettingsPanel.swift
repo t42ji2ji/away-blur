@@ -90,12 +90,17 @@ private struct SettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                row("Blur", $preferences.current.blurRadius, 8...240, "%.0f px")
-                row("Dim", $preferences.current.dim, 0...0.85, "%.0f%%", scale: 100)
-                row("Wash", $preferences.current.wash, 0...0.8, "%.0f%%", scale: 100)
-                row("Grain", $preferences.current.grain, 0...1, "%.0f%%", scale: 100)
-                row("Fade in", $preferences.current.fadeIn, 0.1...3, "%.2f s")
-                row("Fade out", $preferences.current.fadeOut, 0.05...2, "%.2f s")
+                LabeledContent("Strength") {
+                    HStack(spacing: 10) {
+                        Slider(value: Binding(get: { Double(preferences.strength) },
+                                              set: { preferences.strength = Int($0.rounded()) }),
+                               in: 1...5, step: 1)
+                        Text("\(preferences.strength)")
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                }
 
                 Toggle("Float a cat in the middle", isOn: $preferences.showsCat)
                 if preferences.showsCat {
@@ -115,13 +120,7 @@ private struct SettingsView: View {
                     set: { controller.isPreviewing = $0 }
                 ))
             } header: {
-                HStack {
-                    Text("How it looks")
-                    Spacer()
-                    Button("Reset \(preferences.look.title)") { preferences.resetCurrent() }
-                        .buttonStyle(.link)
-                        .font(.callout)
-                }
+                Text("How it looks")
             }
         }
         .formStyle(.grouped)
