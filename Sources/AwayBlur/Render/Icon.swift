@@ -22,13 +22,13 @@ enum Icon {
                                       bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
                                           | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
         let side = Double(size)
-        context.setFillColor(CGColor(red: 0.13, green: 0.15, blue: 0.24, alpha: 1))
+        context.setFillColor(CGColor(gray: 0.30, alpha: 1))
         context.fill(CGRect(x: 0, y: 0, width: side, height: side))
         let blobs: [(x: Double, y: Double, r: Double, colour: CGColor)] = [
-            (0.22, 0.78, 0.42, CGColor(red: 0.42, green: 0.55, blue: 0.95, alpha: 1)),
-            (0.82, 0.70, 0.36, CGColor(red: 0.95, green: 0.62, blue: 0.48, alpha: 1)),
-            (0.68, 0.20, 0.44, CGColor(red: 0.36, green: 0.72, blue: 0.70, alpha: 1)),
-            (0.16, 0.18, 0.30, CGColor(red: 0.85, green: 0.42, blue: 0.62, alpha: 1)),
+            (0.22, 0.78, 0.42, CGColor(gray: 0.92, alpha: 1)),
+            (0.82, 0.70, 0.36, CGColor(gray: 0.74, alpha: 1)),
+            (0.68, 0.20, 0.44, CGColor(gray: 0.58, alpha: 1)),
+            (0.16, 0.18, 0.30, CGColor(gray: 0.84, alpha: 1)),
         ]
         for blob in blobs {
             context.setFillColor(blob.colour)
