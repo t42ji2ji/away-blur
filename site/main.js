@@ -1,6 +1,6 @@
 // The page does what the app does: go still and it frosts, with the app's own
 // cat and letters in the middle; move and it clears.
-import { CAT, FONT } from './art.js';
+import { CAT, DOG, FONT } from './art.js';
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
@@ -440,6 +440,44 @@ let catsInView = false;
 let heldInk = '';
 new IntersectionObserver(([entry]) => { catsInView = entry.isIntersecting; }).observe(cats);
 
+// The Maltese, every animation looping, one-shots included, the way the
+// panel's "hold one animation" plays them.
+const dogStamps = DOG.packed.map(hex => {
+  const bits = new Uint8Array(CAT.width * CAT.height);
+  for (let i = 0; i < hex.length; i++) {
+    const nibble = parseInt(hex[i], 16);
+    for (let bit = 0; bit < 4; bit++) if (nibble & (8 >> bit)) bits[i * 4 + bit] = 1;
+  }
+  return bits;
+});
+const dogs = document.querySelector('.dogs');
+const dogHeld = DOG.animations.map(a => {
+  const figure = document.createElement('figure');
+  const view = document.createElement('canvas');
+  const caption = document.createElement('figcaption');
+  caption.className = 'px';
+  caption.dataset.cell = '2';
+  caption.textContent = a.name;
+  figure.append(view, caption);
+  dogs.append(figure);
+  pixelText.push(pixelEntry(caption));
+  return { a, view, ctx: view.getContext('2d'), shown: -1 };
+});
+let dogsInView = false;
+new IntersectionObserver(([entry]) => { dogsInView = entry.isIntersecting; }).observe(dogs);
+
+function dogStamp({ a }, now) {
+  const count = a.frames[1] - a.frames[0];
+  return a.frames[0] + (reduced ? Math.floor(count / 2) : Math.floor(now * a.fps) % count);
+}
+
+function drawDog(dog, stamp) {
+  dog.shown = stamp;
+  dog.ctx.clearRect(0, 0, dog.view.width, dog.view.height);
+  dog.ctx.fillStyle = heldInk;
+  drawBits(dog.ctx, dogStamps[stamp], CAT.width, 0, 0, dog.cell);
+}
+
 function sizeHeld() {
   heldInk = css('--text');
   const dpr = window.devicePixelRatio || 1;
@@ -451,6 +489,14 @@ function sizeHeld() {
     cat.view.style.width = `${CAT.width * cell / dpr}px`;
     cat.view.style.height = `${CAT.height * cell / dpr}px`;
     drawHeld(cat, reduced ? anim[cat.name].frames[0] + Math.floor(anim[cat.name].count / 2) : cat.player.stamp);
+  }
+  for (const dog of dogHeld) {
+    dog.cell = cell;
+    dog.view.width = CAT.width * cell;
+    dog.view.height = CAT.height * cell;
+    dog.view.style.width = `${CAT.width * cell / dpr}px`;
+    dog.view.style.height = `${CAT.height * cell / dpr}px`;
+    drawDog(dog, dogStamp(dog, seconds()));
   }
 }
 
@@ -506,6 +552,12 @@ function frame() {
   tickFrost(now);
   if (catsInView && !reduced) {
     for (const cat of held) if (cat.player.step(now, 0, cat.name)) drawHeld(cat, cat.player.stamp);
+  }
+  if (dogsInView && !reduced) {
+    for (const dog of dogHeld) {
+      const stamp = dogStamp(dog, now);
+      if (stamp !== dog.shown) drawDog(dog, stamp);
+    }
   }
   requestAnimationFrame(frame);
 }
