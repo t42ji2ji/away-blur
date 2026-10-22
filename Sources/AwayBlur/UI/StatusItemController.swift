@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 @MainActor
 final class StatusItemController: NSObject, NSMenuDelegate {
@@ -7,6 +8,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let preferences: Preferences
     private let controller: BlurController
     private let settings: SettingsPanel
+    private var petWatch: AnyCancellable?
 
     init(preferences: Preferences, controller: BlurController, settings: SettingsPanel) {
         self.preferences = preferences
@@ -19,6 +21,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         item.menu = menu
         refreshIcon()
         Pressure.watch { [weak self] _ in self?.refreshIcon() }
+        // The menu bar shows whichever animal is asleep on the frost.
+        petWatch = preferences.$pet.dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshIcon() }
     }
 
     private static func symbol() -> NSImage? {
@@ -80,6 +86,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Pet", action: nil, keyEquivalent: ""))
+        for pet in Pet.allCases {
+            let entry = NSMenuItem(title: "  \(pet.title)", action: #selector(pickPet(_:)), keyEquivalent: "")
+            entry.target = self
+            entry.representedObject = pet.rawValue
+            entry.state = preferences.showsCat && preferences.pet == pet ? .on : .off
+            // Sitting, at one Retina pixel per art pixel: curled up asleep,
+            // which is what fits the menu bar, the two are the same blob.
+            entry.image = Icon.menuBar(cell: 1, pet: pet, doing: "idle", points: 0.5)
+            menu.addItem(entry)
+        }
+
+        menu.addItem(.separator())
         let preview = NSMenuItem(title: "Preview the look now", action: #selector(togglePreview), keyEquivalent: "p")
         preview.target = self
         preview.state = controller.isPreviewing ? .on : .off
@@ -118,6 +137,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func pickLook(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let look = Look(rawValue: raw) else { return }
         preferences.look = look
+    }
+
+    @objc private func pickPet(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let pet = Pet(rawValue: raw) else { return }
+        preferences.pet = pet
+        preferences.showsCat = true
     }
 
     @objc private func togglePreview() {

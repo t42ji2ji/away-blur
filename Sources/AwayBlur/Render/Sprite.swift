@@ -24,6 +24,20 @@ struct CatAnimation: Identifiable, Hashable {
     var duration: Double { Double(count) / fps }
 }
 
+/// Which animal keeps watch. Both are drawn on the same grid and the same
+/// ground line, so everything that places, scales or plays one plays the other.
+enum Pet: String, CaseIterable {
+    case cat
+    case maltese
+
+    var title: String {
+        switch self {
+        case .cat: return "Cat"
+        case .maltese: return "Maltese"
+        }
+    }
+}
+
 /// The cat's art: a 48x32 grid of art pixels per frame, one bit per pixel.
 ///
 /// It used to be a grid of characters written by hand in this file, and a face
@@ -40,8 +54,24 @@ struct CatAnimation: Identifiable, Hashable {
 /// sheet and running the script, not editing characters here.
 enum Cat {
 
-    static func animation(named name: String) -> CatAnimation {
-        animations.first { $0.name == name } ?? animations[0]
+    /// The animal everything below reads. Set from the preferences on the main
+    /// thread, which is the only thread that draws or steps the player.
+    nonisolated(unsafe) static var pet = Pet.cat
+
+    static var animations: [CatAnimation] { animations(of: pet) }
+    static var packed: [String] { packed(of: pet) }
+
+    static func animations(of pet: Pet) -> [CatAnimation] {
+        pet == .maltese ? malteseAnimations : catAnimations
+    }
+
+    static func packed(of pet: Pet) -> [String] {
+        pet == .maltese ? maltesePacked : catPacked
+    }
+
+    static func animation(named name: String, of pet: Pet = pet) -> CatAnimation {
+        let all = animations(of: pet)
+        return all.first { $0.name == name } ?? all[0]
     }
 
     /// One byte per pixel, unpacked from the hex: ink is 255.
@@ -49,10 +79,10 @@ enum Cat {
     /// Nothing is cut out of it. The eyes are holes drawn into the sheet, so a
     /// hole here is a pixel that was simply never ink — the face does not have
     /// to be composited on, and it moves with the pose for free.
-    static func stamp(frame: Int) -> [UInt8] {
+    static func stamp(frame: Int, of pet: Pet = pet) -> [UInt8] {
         var bytes = [UInt8](repeating: 0, count: width * height)
         var index = 0
-        for character in packed[frame] {
+        for character in packed(of: pet)[frame] {
             let nibble = character.hexDigitValue ?? 0
             for bit in 0..<4 where nibble & (8 >> bit) != 0 {
                 bytes[index + bit] = 255
@@ -64,8 +94,8 @@ enum Cat {
 
     /// A frame trimmed to its ink, for the places that want the cat and not
     /// the slack around it: the app icon and the menu bar.
-    static func cropped(frame: Int) -> (bytes: [UInt8], width: Int, height: Int) {
-        let full = stamp(frame: frame)
+    static func cropped(frame: Int, of pet: Pet = pet) -> (bytes: [UInt8], width: Int, height: Int) {
+        let full = stamp(frame: frame, of: pet)
         var minColumn = width, maxColumn = -1, minRow = height, maxRow = -1
         for row in 0..<height {
             for column in 0..<width where full[row * width + column] > 0 {

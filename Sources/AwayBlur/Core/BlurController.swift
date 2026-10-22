@@ -19,7 +19,10 @@ final class BlurController {
     private let renderer: BlurRenderer?
 
     private var overlays: [Overlay] = []
-    private var phase: Phase = .hidden
+    private var phase: Phase = .hidden {
+        didSet { if phase == .falling, oldValue != .falling { fallingSince = CACurrentMediaTime() } }
+    }
+    private var fallingSince: CFTimeInterval = 0
     private var progress: Double = 0
     private var link: CADisplayLink?
     private var lastTick: CFTimeInterval = 0
@@ -29,8 +32,13 @@ final class BlurController {
     /// few hundred ScreenCaptureKit calls a minute.
     private var retryAfter: CFTimeInterval = 0
     private var permission = (checked: CFTimeInterval(0), granted: false)
+    /// The lock screen is up. Idle seconds still count while it is, so
+    /// without this the frost goes up over the password field.
+    private var isLocked = false
     /// Every frame of every animation, built on the first blur and kept.
     private var frames: [MTLTexture] = []
+    /// Which animal `frames` holds.
+    private var framesPet: Pet?
     /// What the cat is doing. Stepped off wall time rather than off display
     /// link ticks: the link drops to 15fps while the cat is the only thing
     /// moving, so counting ticks would play a 12fps gallop at 15.
@@ -193,7 +201,7 @@ final class BlurController {
             // Otherwise a hand on the keyboard or mouse takes it down.
             return idle >= 0.4
         }
-        guard hasPermission, CACurrentMediaTime() >= retryAfter else { return false }
+        guard hasPermission, !isLocked, CACurrentMediaTime() >= retryAfter else { return false }
         if isPreviewing { return true }
         guard preferences.isEnabled, !Presence.displayHeldAwake() else { return false }
         return idle >= preferences.idleDelay
@@ -209,7 +217,17 @@ final class BlurController {
         // the keyboard, the menu, a preview ending — has already been decided,
         // and standing still for half a second in the middle of a long fade
         // should not drag the screen back up.
-        guard phase != .falling else { return }
+        guard phase != .falling else {
+            // The fade is driven by the display link, and a link whose screen
+            // went to sleep or away stops ticking. Nothing else ends a fade, so
+            // the frost would sit there frozen over a screen that answers every
+            // click underneath it. The longest fade is 0.8s.
+            if CACurrentMediaTime() - max(lastTick, fallingSince) > 1.5 {
+                FileLog.write("fade stalled; taking the screen back")
+                finishHiding()
+            }
+            return
+        }
         let wanted = shouldShow()
         switch (wanted, phase) {
         case (true, .hidden):
@@ -283,7 +301,6 @@ final class BlurController {
         captionSince = 0
         captionTurn = 0
         captionLines = []
-        if frames.isEmpty { frames = renderer.makeFrames() }
         player.begin(at: CACurrentMediaTime())
         progress = 0
         // Held, not rising: the ramp only starts once the sharp copy is up.
@@ -463,6 +480,13 @@ final class BlurController {
         let settings = preferences.current
         let shown = pinned ?? progress
         let look = FrameLook(settings: settings, progress: shown)
+        // Built on the first blur, and again only when the animal changes —
+        // possibly under a screen that is already up, where it arrives resting.
+        if framesPet != Cat.pet {
+            frames = renderer.makeFrames()
+            framesPet = Cat.pet
+            player.begin(at: CACurrentMediaTime())
+        }
         if preferences.showsCat {
             player.step(now: CACurrentMediaTime(),
                         awayFor: CACurrentMediaTime() - awaySince,
@@ -499,6 +523,7 @@ final class BlurController {
     }
 
     private func finishHiding() {
+        FileLog.write("hidden after \(Int(CACurrentMediaTime() - awaySince))s")
         stopLink()
         overlays.forEach { $0.close() }
         overlays.removeAll()
@@ -549,7 +574,20 @@ final class BlurController {
         }
         watchers.append(DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.hideNow() }
+                MainActor.assumeIsolated {
+                    self?.isLocked = true
+                    self?.hideNow()
+                }
+            })
+        // Touch ID or a Watch unlocks without a key press, so idle seconds are
+        // still hours when the desktop comes back. Give a hand time to arrive.
+        watchers.append(DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.isLocked = false
+                    self.retryAfter = max(self.retryAfter, CACurrentMediaTime() + 5)
+                }
             })
         watchers.append(NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in

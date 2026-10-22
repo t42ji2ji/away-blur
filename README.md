@@ -49,7 +49,8 @@ touch any key or move the mouse and you are back where you were.
   either one lighter or heavier.
 - **A cat keeps watch.** A small pixel cat sits in the middle of the frost. Every so
   often it stretches, yawns, paws at the frost or pounces, and after ten
-  minutes it lies down to sleep.
+  minutes it lies down to sleep. Prefer a dog? Switch it for a fluffy Maltese
+  that wags, begs and spins on the spot.
 - **A line for whoever glances over.** Under the cat: how long you've been gone,
   the time, the battery.
 - **Your agents, at a glance.** If you use Claude Code or Codex, each session

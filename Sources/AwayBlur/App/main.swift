@@ -1,5 +1,11 @@
 import AppKit
 
+// For the tools below: `--pet maltese` draws or runs the Maltese instead.
+if let index = CommandLine.arguments.firstIndex(of: "--pet"), CommandLine.arguments.count > index + 1,
+   let pet = Pet(rawValue: CommandLine.arguments[index + 1]) {
+    Cat.pet = pet
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--shot") {
     let path = CommandLine.arguments.count > index + 1 ? CommandLine.arguments[index + 1] : "."
     Diagnostics.shoot(into: URL(fileURLWithPath: path, isDirectory: true))

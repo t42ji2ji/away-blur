@@ -253,8 +253,24 @@ nothing and read from the side is obvious. And ask for one thing to change per
 frame: every animation here that asked for two or three at once came back
 jittering, and the fix was never a longer prompt.
 
+**The Maltese** is the other animal, picked in the menu or the panel. It is
+drawn on the same 48x32 grid with the same ground line, so everything that
+places and plays the cat plays it too: `Cat.pet` decides which set of frames
+`Cat.animations` and `Cat.packed` hand out. Its sheets are in `Art/maltese/`
+and `make-sprites.py maltese` writes `MalteseFrames.swift`.
+
+They were not made the way the cat's were. Seedream, not GPT, and it will not
+keep to a 4x4 grid, so each animation was asked for as a loose row of frames
+and cut apart afterwards, every frame scaled to the grid at one scale per
+animation and laid back into a sheet the script can read. The note in
+`Art/maltese/sheets.json` says what else the cutting did. Its `spin` is the
+tail-chasing turn the cat could not do, made the way that note above says to:
+not sixteen drawings of a turn but four poses — front, three-quarter, side,
+back — from one generation, with the far side mirrored.
+
 ```sh
 # Every animation, one row each, every frame at the size it is drawn.
+# Add --pet maltese for the dog, here and with --beats.
 "dist/Away Blur.app/Contents/MacOS/AwayBlur" --cat ~/Desktop/cats.png
 
 # Half an hour of the cat with no screen at all: what it did and when. The

@@ -51,6 +51,46 @@ private struct ShortcutRecorder: View {
     }
 }
 
+/// The animals as pictures, not names: which one is which is the whole
+/// question, and the drawing answers it before the label does.
+private struct PetPicker: View {
+    @Binding var selection: Pet
+    @State private var hovered: Pet?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ForEach(Pet.allCases, id: \.self) { pet in
+                let chosen = selection == pet
+                Button { selection = pet } label: {
+                    VStack(spacing: 6) {
+                        if let image = Icon.menuBar(cell: 4, pet: pet, doing: "idle", points: 2) {
+                            Image(nsImage: image)
+                                .renderingMode(.template)
+                                .interpolation(.none)
+                                .foregroundStyle(chosen ? Color.accentColor : .primary)
+                        }
+                        Text(pet.title).font(.callout)
+                    }
+                    .frame(width: 96, height: 92)
+                    .background(RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.primary.opacity(chosen ? 0.08 : hovered == pet ? 0.06 : 0.03)))
+                    .overlay(RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(chosen ? Color.accentColor : .clear, lineWidth: 2))
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .help("Float the \(pet.title.lowercased()) on the frost")
+                .accessibilityAddTraits(chosen ? .isSelected : [])
+                .onHover { inside in
+                    hovered = inside ? pet : nil
+                    inside ? NSCursor.pointingHand.push() : NSCursor.pop()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 private struct SettingsView: View {
     @ObservedObject var preferences: Preferences
     let controller: BlurController
@@ -102,8 +142,9 @@ private struct SettingsView: View {
                     }
                 }
 
-                Toggle("Float a cat in the middle", isOn: $preferences.showsCat)
+                Toggle("Float a pet in the middle", isOn: $preferences.showsCat)
                 if preferences.showsCat {
+                    PetPicker(selection: $preferences.pet)
                     row("Its size", $preferences.catSize, 0.05...0.35, "%.0f%%", scale: 100)
                     row("Its jitter", $preferences.catJitter, 0...3, "%.1f px")
                     Picker("Hold one animation", selection: $preferences.catAnimation) {

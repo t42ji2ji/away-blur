@@ -20,7 +20,7 @@ enum Caption {
             if let waiting = Sessions.line(for: sessions) { lines.append(waiting) }
             if let busy = busy() { lines.append(busy) }
         }
-        lines.append(chatter.randomElement() ?? "NOBODY HERE")
+        lines.append((Cat.pet == .maltese ? woof : chatter).randomElement() ?? "NOBODY HERE")
         return lines
     }
 
@@ -35,6 +35,18 @@ enum Caption {
         "I AM NOT ASLEEP",
         "NOTHING HAS CHANGED",
         "THE SCREEN IS SAFE",
+    ]
+
+    /// The same empty chair, seen by a dog: it is not judging, it is waiting.
+    private static let woof = [
+        "STILL WAITING",
+        "GOOD DOG. STAYING.",
+        "I DID NOT BARK",
+        "YOUR SEAT IS COLD",
+        "IS IT WALK TIME",
+        "I GUARDED THE SCREEN",
+        "TAKE YOUR TIME",
+        "I MISS YOU ALREADY",
     ]
 
     private static func away(_ seconds: TimeInterval) -> String {

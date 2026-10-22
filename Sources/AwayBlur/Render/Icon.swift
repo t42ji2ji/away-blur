@@ -83,8 +83,14 @@ enum Icon {
     /// height of the whole menu bar, and scaling it down to fit would cost the
     /// sharpness the rest of the app is built around. The curl is 15 tall, it
     /// fits, and it still reads as a cat.
-    static func menuBar(cell: Int = 2, tint: CGColor? = nil) -> NSImage? {
-        let cat = Cat.cropped(frame: Cat.animation(named: "sleep").frames.lowerBound)
+    ///
+    /// The same drawing serves anywhere an animal is shown rather than played:
+    /// `doing` picks the pose and `points` how many points one art pixel gets,
+    /// which stays a whole number of screen pixels for the same reason the
+    /// overlay's does: half a point is one pixel on a Retina screen.
+    static func menuBar(cell: Int = 2, tint: CGColor? = nil, pet: Pet = Cat.pet,
+                        doing pose: String = "sleep", points: Double = 1) -> NSImage? {
+        let cat = Cat.cropped(frame: Cat.animation(named: pose, of: pet).frames.lowerBound, of: pet)
         let bytes = cat.bytes
         let columns = cat.width, rows = cat.height
         let width = columns * cell, height = rows * cell
@@ -100,7 +106,8 @@ enum Icon {
             }
         }
         guard let image = context.makeImage() else { return nil }
-        let made = NSImage(cgImage: image, size: NSSize(width: width / cell, height: height / cell))
+        let made = NSImage(cgImage: image, size: NSSize(width: Double(width / cell) * points,
+                                                        height: Double(height / cell) * points))
         made.isTemplate = tint == nil
         return made
     }

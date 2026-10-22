@@ -101,6 +101,14 @@ final class Preferences: ObservableObject {
     /// another app may already own it, silently.
     @Published var hotkeyLastFired: Date?
     @Published var showsCat: Bool { didSet { defaults.set(showsCat, forKey: "showsCat") } }
+    @Published var pet: Pet {
+        didSet {
+            store(pet.rawValue, "pet")
+            Cat.pet = pet
+            // A held animation the new animal does not have would hold nothing.
+            if !Cat.animations.contains(where: { $0.name == catAnimation }) { catAnimation = "" }
+        }
+    }
     /// One animation held up to be looked at, or "" to let the cat choose.
     /// A tuning switch more than a preference, but remembering it costs
     /// nothing and a held animation is how you look at one at all — otherwise
@@ -128,6 +136,7 @@ final class Preferences: ObservableObject {
         isEnabled = defaults.object(forKey: "enabled") as? Bool ?? true
         idleDelay = defaults.object(forKey: "idleDelay") as? Double ?? 90
         showsCat = defaults.object(forKey: "showsCat") as? Bool ?? true
+        pet = Pet(rawValue: defaults.string(forKey: "pet") ?? "") ?? .cat
         catAnimation = defaults.string(forKey: "catAnimation") ?? ""
         catSize = defaults.object(forKey: "catSize") as? Double ?? 0.20
         showsCaption = defaults.object(forKey: "showsCaption") as? Bool ?? true
@@ -136,6 +145,7 @@ final class Preferences: ObservableObject {
         hotkeyModifiers = defaults.object(forKey: "hotkeyModifiers") as? Int ?? (optionKey | shiftKey | cmdKey) // ⌥⇧⌘
         look = Look(rawValue: defaults.string(forKey: "look") ?? "") ?? .ambient
         strength = defaults.object(forKey: "strength") as? Int ?? 3
+        Cat.pet = pet
     }
 
     /// The settings for the look in use.

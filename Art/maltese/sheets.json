@@ -1,0 +1,167 @@
+{
+  "_": [
+    "The Maltese, laid out the way Art/sheets.json lays out the cat so the same",
+    "script reads both. These sheets are not raw generations: Seedream would not",
+    "keep to a 4x4 grid, so each animation was drawn as a loose row of frames,",
+    "every frame cut out, taken down to the 48x32 art grid at one scale per",
+    "animation, and laid back into a sheet at 8 pixels per art pixel. The cutting",
+    "already did what `still` does for the cat: idle is one tailless body with",
+    "each frame's tail added, and the blink cells are those frames with the eyes",
+    "closed by hand. `spin` is front, three-quarter, side and back from one",
+    "generation, with the far side mirrored rather than drawn.",
+    "",
+    "Scripts/make-sprites.py maltese turns this into MalteseFrames.swift."
+  ],
+  "cell": 384,
+  "block": 8,
+  "animations": [
+    {
+      "name": "idle",
+      "sheet": "idle.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": true,
+      "fps": 8,
+      "view": "front",
+      "note": "sitting, tail wagging",
+      "blink": [
+        9,
+        16
+      ]
+    },
+    {
+      "name": "sleep",
+      "sheet": "sleep.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": true,
+      "fps": 6,
+      "view": "side",
+      "note": "curled up, breathing"
+    },
+    {
+      "name": "bristle",
+      "sheet": "bristle.png",
+      "cells": [
+        1,
+        7
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "startled: jumps, fur puffed out"
+    },
+    {
+      "name": "stretch",
+      "sheet": "stretch.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "a play bow"
+    },
+    {
+      "name": "shake",
+      "sheet": "shake.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 10,
+      "view": "front",
+      "note": "shaking its fur out"
+    },
+    {
+      "name": "yawn",
+      "sheet": "yawn.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "head back, jaw open"
+    },
+    {
+      "name": "flop",
+      "sheet": "flop.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "over onto its back"
+    },
+    {
+      "name": "situp",
+      "sheet": "situp.png",
+      "cells": [
+        1,
+        6
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "side",
+      "note": "up on its hind legs, begging"
+    },
+    {
+      "name": "paw",
+      "sheet": "paw.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": false,
+      "fps": 8,
+      "view": "front",
+      "note": "a paw against the frost"
+    },
+    {
+      "name": "walk",
+      "sheet": "walk.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": true,
+      "fps": 8,
+      "view": "side",
+      "note": "a trot, in place"
+    },
+    {
+      "name": "run",
+      "sheet": "run.png",
+      "cells": [
+        1,
+        8
+      ],
+      "loop": true,
+      "fps": 12,
+      "view": "side",
+      "note": "a gallop, in place"
+    },
+    {
+      "name": "spin",
+      "sheet": "spin.png",
+      "cells": [
+        1,
+        6
+      ],
+      "loop": true,
+      "fps": 8,
+      "view": "front",
+      "note": "turning round on the spot"
+    }
+  ]
+}

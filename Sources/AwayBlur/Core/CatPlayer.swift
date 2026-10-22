@@ -31,15 +31,20 @@ struct CatPlayer {
 
     /// Everything that is neither resting nor the alarm: the cat doing
     /// something because nobody is watching.
-    static let beats = ["stretch", "shake", "yawn", "flop", "roll",
-                        "situp", "paw", "walk", "run", "pounce"]
+    static var beats: [String] {
+        Cat.pet == .maltese
+            ? ["stretch", "shake", "yawn", "flop", "situp", "paw", "walk", "run", "spin"]
+            : ["stretch", "shake", "yawn", "flop", "roll", "situp", "paw", "walk", "run", "pounce"]
+    }
 
     /// What it will still do once it has gone to sleep, and how much less
     /// often. Nothing here gets up: a cat that galloped across the screen
     /// every twenty seconds and then lay straight back down would not read as
     /// a sleeping cat at all, and there are no transitions between poses to
     /// soften the cut.
-    static let sleepyBeats = ["yawn", "roll", "stretch"]
+    static var sleepyBeats: [String] {
+        Cat.pet == .maltese ? ["yawn", "stretch"] : ["yawn", "roll", "stretch"]
+    }
     static let awakeGap = 12.0 ... 30.0
     static let asleepGap = 90.0 ... 240.0
 
