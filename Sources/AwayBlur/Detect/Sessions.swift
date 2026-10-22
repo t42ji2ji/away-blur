@@ -49,9 +49,13 @@ enum Sessions {
 
     // MARK: - Claude Code
 
-    /// `~/.claude/sessions/<pid>.json`, one per running session, with a status
-    /// of `busy` or `idle`. Anything else is a state this does not know, and
-    /// it is left out rather than guessed at.
+    /// `~/.claude/sessions/<pid>.json`, one per running session. Its status is
+    /// one of four: `busy` is a turn in progress; `idle` is a turn finished;
+    /// `shell` is a turn finished with a background shell still going; and
+    /// `waiting` is blocked on you — a permission prompt or a question — which
+    /// is the one most worth seeing from across the room, so it is news for as
+    /// long as it lasts. Anything else is a state this does not know, and it is
+    /// left out rather than guessed at.
     private static func claude() -> [Session] {
         let directory = home.appendingPathComponent(".claude/sessions", isDirectory: true)
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return [] }
@@ -66,7 +70,9 @@ enum Sessions {
             switch status {
             case "busy":
                 return Session(id: id, name: folder(cwd), state: .working)
-            case "idle":
+            case "waiting":
+                return Session(id: id, name: folder(cwd), state: .waiting)
+            case "idle", "shell":
                 let since = (object["statusUpdatedAt"] as? Double ?? 0) / 1000
                 guard now - since < fresh else { return nil }
                 return Session(id: id, name: folder(cwd), state: .waiting)
