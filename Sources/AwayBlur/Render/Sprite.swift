@@ -33,7 +33,7 @@ enum Pet: String, CaseIterable {
     var title: String {
         switch self {
         case .cat: return "Cat"
-        case .maltese: return "Maltese"
+        case .maltese: return "Dog"
         }
     }
 }
